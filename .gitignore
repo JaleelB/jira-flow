@@ -1,0 +1,25 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Project-specific
+bin/
+pkg/
+vendor/
+
+# Editor files
+.idea/
+*.swp
+*.swo
+*.vscode
+
+# OS-specific files
+.DS_Store
+Thumbs.db
