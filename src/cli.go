@@ -2,25 +2,12 @@ package main
 
 import (
 	"fmt"
-	"regexp"
 
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
-func validateJiraKey(
-	input string, 
-	branchPattern string,
-	) (string, error) {
-	//the regex pattern for JIRA issue key validation
-	jiraIssueKeyPattern := regexp.MustCompile(branchPattern)
-	if !jiraIssueKeyPattern.MatchString(input) {
-		return "", fmt.Errorf("invalid JIRA issue key format. Valid format is <project_key>-<ticket_number> e.g. ABC-1234. Please try again")
-	}
-	return input, nil
-}
-
-func CreateMenu(
+func CLIMenu(
 	config *Config,
 ) *cobra.Command {
 	cmd := &cobra.Command{
@@ -62,7 +49,7 @@ func CreateMenu(
 					prompt := promptui.Prompt{
 						Label: "JIRA Issue Key",
 						Validate: func(input string) error {
-							_, err := validateJiraKey(input, config.BranchPattern)
+							_, err := ValidateJiraKey(input, config.BranchPattern)
 							return err
 						},
 					}
