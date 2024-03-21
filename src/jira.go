@@ -5,6 +5,18 @@ import (
 	"regexp"
 )
 
+// JiraManager handles operations related to JIRA issues.
+type JiraManager struct {
+	Config *Config
+}
+
+// NewJiraManager creates a new instance of JiraManager with the provided configuration.
+func NewJiraManager(config *Config) *JiraManager {
+	return &JiraManager{
+		Config: config,
+	}
+}
+
 func ValidateJiraKey(
 	input string, 
 	branchPattern string,
