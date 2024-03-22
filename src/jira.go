@@ -18,11 +18,11 @@ func NewJiraManager(config *Config) *JiraManager {
 }
 
 func (jm *JiraManager) ValidateJiraKey(
-	input string, 
-	branchPattern string,
+	input string,
 ) (string, error) {
 	//the regex pattern for JIRA issue key validation
-	jiraIssueKeyPattern := regexp.MustCompile(branchPattern)
+	jiraIssueKeyPattern := regexp.MustCompile(jm.Config.BranchPattern)
+
 	if !jiraIssueKeyPattern.MatchString(input) {
 		return "", fmt.Errorf("invalid JIRA issue key format. Valid format is <project_key>-<ticket_number> e.g. ABC-1234. Please try again")
 	}
