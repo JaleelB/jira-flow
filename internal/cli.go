@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"fmt"
@@ -10,6 +10,9 @@ import (
 func CLIMenu(
 	config *Config,
 ) *cobra.Command {
+
+	jiraManager := NewJiraManager(config)
+
 	cmd := &cobra.Command{
 		Use:   "menu",
 		Short: "Create a CLI menu",
@@ -41,15 +44,15 @@ func CLIMenu(
 
 			switch result {
 				case "Automatically link commits to Jira issues":
-					config.AutoLink = true
+					jiraManager.Config.AutoLink = true
 					fmt.Println("Automatic JIRA issue key tracking is enabled. The issue key will be extracted from the branch name and prepended to your commits, linking them to your JIRA issue.")
 					
 				case "Manually link commits to Jira issues":
-	
+
 					prompt := promptui.Prompt{
 						Label: "JIRA Issue Key",
 						Validate: func(input string) error {
-							_, err := ValidateJiraKey(input, config.BranchPattern)
+							_, err := jiraManager.ValidateJiraKey(input)
 							return err
 						},
 					}
@@ -61,8 +64,8 @@ func CLIMenu(
 						return
 					}
 
-					config.JiraKey = result
-					config.AutoLink = false
+					jiraManager.Config.JiraKey = result
+					jiraManager.Config.AutoLink = false
 
 					fmt.Printf("You have entered JIRA issue key: %q\n. The issue key will now prepeded to your commmits linking them to your JIRA issue.", result)
 			

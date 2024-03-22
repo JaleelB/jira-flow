@@ -1,4 +1,4 @@
-package main
+package internal
 
 type Config struct {
 	AutoLink      bool   // Enable automatic JIRA key linking from branch name
@@ -8,7 +8,7 @@ type Config struct {
 }
 
 // New returns a new Config instance with default settings.
-func New() *Config {
+func NewConfig() *Config {
 	return &Config{
 		AutoLink:      true, // By default, we want to auto-link JIRA keys
 		BranchPattern: `[A-Z]+-\d+`, // Regex pattern for JIRA keys like "JIRA-1234"

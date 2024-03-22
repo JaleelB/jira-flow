@@ -1,1 +1,1 @@
-# jira-autolink-commits
+# jira-flow

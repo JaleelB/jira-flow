@@ -9,7 +9,7 @@ import (
 
 func main() {
 
-	config := New()  // create a new config object
+	config := NewConfig()  // create a new config object
 
 	rootCmd := &cobra.Command{
 		Use: "myapp",
