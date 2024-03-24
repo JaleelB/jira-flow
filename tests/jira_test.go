@@ -1,4 +1,4 @@
-package jira
+package testing
 
 import (
 	"testing"
