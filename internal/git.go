@@ -1,4 +1,4 @@
-package git
+package internal
 
 import (
 	"os/exec"
