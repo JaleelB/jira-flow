@@ -67,6 +67,18 @@ func CLIMenu(
 					jiraManager.Config.JiraKey = result
 					jiraManager.Config.AutoLink = false
 
+					checkDirErr := CheckGitAndHooksDir()
+					if checkDirErr != nil {
+						fmt.Printf("Failed to check git and hooks directory: %v\n", checkDirErr)
+						return
+					}
+
+					setHookErr := SetGitHookScript(jiraManager.Config)
+					if setHookErr != nil {
+						fmt.Printf("Failed to set git hook script: %v\n", err)
+						return
+					}
+					
 					fmt.Printf("You have entered JIRA issue key: %q\n. The issue key will now prepeded to your commmits linking them to your JIRA issue.", result)
 			
 			}
