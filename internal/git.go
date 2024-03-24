@@ -17,7 +17,7 @@ func ExecuteGitCommand(args ...string) (string, error) {
 	return strings.TrimSuffix(string(output), "\n"), nil
 }
 
-func SetGitHookScript(config *Config) {
+func SetGitHookScript(config *Config) error {
 	// Hook script content
 	hookScript := `
 		#!/bin/sh
@@ -46,25 +46,24 @@ func SetGitHookScript(config *Config) {
 	`
 
 	// Write the hook script to the hook path
-	hookPath := fmt.Sprintf("%sprepare-commit-msg", config.HookPath)
+	// hookPath := fmt.Sprintf("%sprepare-commit-msg", config.HookPath)
+	hookPath := "."
 	err := os.WriteFile(hookPath, []byte(fmt.Sprintf(hookScript, config.JiraKey)), 0755)
 	if err != nil {
-		fmt.Println("os.WriteFile:", err)
-		return
+		return fmt.Errorf("os.WriteFile: %v", err)
 	}
 
 	// Make the hook script executable
 	_, err = ExecuteGitCommand("add", "--chmod=+x", hookPath)
 	if err != nil {
-		fmt.Println("git add --chmod=+x:", err)
-		return
+		return fmt.Errorf("git add --chmod=+x: %v", err)
 	}
 
 	_, err = ExecuteGitCommand("update-index", "--add", "--chmod=+x", hookPath)
 	if err != nil {
-		fmt.Println("git update-index --add --chmod=+x:", err)
-		return
+		return fmt.Errorf("git update-index --add --chmod=+x: %v", err)
 	}
 
 	fmt.Println("\nGit hook installed successfully.")
+	return nil
 }
