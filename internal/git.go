@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -17,6 +18,8 @@ func ExecuteGitCommand(args ...string) (string, error) {
 	}
 	return strings.TrimSuffix(string(output), "\n"), nil
 }
+
+
 
 func SetGitHookScript(config *Config) error {
 	// Hook script content
@@ -90,4 +93,26 @@ func CheckGitAndHooksDir() error {
     }
 
     return nil
+}
+
+func GetCurrentBranchName() (string, error) {
+    branchName, err := ExecuteGitCommand("rev-parse", "--abbrev-ref", "HEAD")
+    if err != nil {
+        return "", fmt.Errorf("failed to get the current branch name: %w", err)
+    }
+    return strings.TrimSpace(branchName), nil
+}
+
+func (jm *JiraManager) ExtractIssueKeyFromBranchName(branchName string) (string, error) {
+	pattern := regexp.MustCompile(jm.Config.BranchPattern)
+	matches := pattern.FindStringSubmatch(branchName)
+	if len(matches) == 0 {
+		return "", fmt.Errorf("no JIRA issue key found in branch name")
+	}
+	// Assuming the first match is the issue key
+	return matches[0], nil
+}
+
+func (jm *JiraManager) AppendIssueKeyToCommitMessage(commitMsg, issueKey string) string {
+	return fmt.Sprintf("%s %s", issueKey, commitMsg)
 }

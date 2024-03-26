@@ -29,17 +29,5 @@ func (jm *JiraManager) ValidateJiraKey(
 	return input, nil
 }
 
-func (jm *JiraManager) ExtractIssueKeyFromBranchName(branchName string) (string, error) {
-	pattern := regexp.MustCompile(jm.Config.BranchPattern)
-	matches := pattern.FindStringSubmatch(branchName)
-	if len(matches) == 0 {
-		return "", fmt.Errorf("no JIRA issue key found in branch name")
-	}
-	// Assuming the first match is the issue key
-	return matches[0], nil
-}
 
-func (jm *JiraManager) AppendIssueKeyToCommitMessage(commitMsg, issueKey string) string {
-	return fmt.Sprintf("%s %s", issueKey, commitMsg)
-}
 
