@@ -86,29 +86,3 @@ func TestExtractIssueKeyFromBranchName(t *testing.T) {
     }
 }
 
-func TestAppendIssueKeyToCommitMessage(t *testing.T) {
-    config := &internal.Config{}
-    manager := internal.NewJiraManager(config)
-
-    tests := []struct {
-        name     string
-        commit   string
-        issueKey string
-        want     string
-    }{
-        {
-            name:     "valid commit message",
-            commit:   "Implement login feature",
-            issueKey: "ABC-1234",
-            want:     "ABC-1234 Implement login feature",
-        },
-    }
-
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            if got := manager.AppendIssueKeyToCommitMessage(tt.commit, tt.issueKey); got != tt.want {
-                t.Errorf("AppendIssueKeyToCommitMessage() = %v, want %v", got, tt.want)
-            }
-        })
-    }
-}

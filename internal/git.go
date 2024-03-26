@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 )
 
@@ -19,47 +20,41 @@ func ExecuteGitCommand(args ...string) (string, error) {
 	return strings.TrimSuffix(string(output), "\n"), nil
 }
 
-
-
 func SetGitHookScript(config *Config) error {
-	// Hook script content
-	hookScript := `
-		#!/bin/sh
-		# This hook will prepend the JIRA issue key to commit messages
+    // Determine the correct binary based on the OS
+    var binaryName string
+    switch runtime.GOOS {
+    case "windows":
+        binaryName = "commitmsg-windows.exe"
+    case "darwin":
+        binaryName = "commitmsg-macos"
+    case "linux":
+        binaryName = "commitmsg-linux"
+    default:
+        return fmt.Errorf("unsupported operating system")
+    }
 
-		# Get the name of the current branch
-		BRANCH_NAME=$(git symbolic-ref --short HEAD)
+    binaryPath := filepath.Join("bin", binaryName)
 
-		# Define the regex to match the JIRA issue ID
-		JIRA_ISSUE_REGEX='[A-Z]+-[0-9]+'
+    // Check if binary exists
+    if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
+        return fmt.Errorf("binary does not exist: %v", binaryPath)
+    }
 
-		# Extract the JIRA issue ID from the branch name using the regex
-		if [[ $BRANCH_NAME =~ $JIRA_ISSUE_REGEX ]]; then
-			JIRA_ISSUE_ID=${BASH_REMATCH[0]}
-		else
-			# If not found in branch name, use manual input (if provided)
-			JIRA_ISSUE_ID='%s'
-		fi
+    // Path to the Git hook
+    hookPath := filepath.Join(config.HookPath, "pre-commit")
 
-		# Prepend the JIRA issue ID to the commit message
-		if [[ -n "$JIRA_ISSUE_ID" ]]; then
-			sed -i.bak -e "1s/^/$JIRA_ISSUE_ID /" "$1"
-		else
-			echo "JIRA issue key not provided or extracted. Commit message not modified."
-		fi
-	`
+    // Prepare the hook script that will execute the binary
+    hookScript := fmt.Sprintf("#!/bin/sh\n%s \"$1\"", binaryPath)
 
-	// Write the hook script to the hook path
-	hookFileName := "pre-commit" 
-	hookPath := filepath.Join(config.HookPath, hookFileName)
+    // Write the hook script to the hook path
+    err := os.WriteFile(hookPath, []byte(hookScript), 0755)
+    if err != nil {
+        return fmt.Errorf("os.WriteFile: %v", err)
+    }
 
-	err := os.WriteFile(hookPath, []byte(fmt.Sprintf(hookScript, config.JiraKey)), 0755)
-	if err != nil {
-		return fmt.Errorf("os.WriteFile: %v", err)
-	}
-
-	fmt.Println("\nGit hook installed successfully.")
-	return nil
+    fmt.Println("\nGit hook installed successfully.")
+    return nil
 }
 
 func CheckGitAndHooksDir() error {
@@ -113,6 +108,3 @@ func (jm *JiraManager) ExtractIssueKeyFromBranchName(branchName string) (string,
 	return matches[0], nil
 }
 
-func (jm *JiraManager) AppendIssueKeyToCommitMessage(commitMsg, issueKey string) string {
-	return fmt.Sprintf("%s %s", issueKey, commitMsg)
-}
