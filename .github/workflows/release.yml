@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "^1.22.1"
+
+      - name: Build Binaries Using Scripts
+        run: |
+          mkdir -p bin
+          ./scripts/build-commits.sh
+          ./scripts/build-app.sh
+        shell: bash
+
+      - name: Upload Binaries to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./bin/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
