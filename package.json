@@ -1,0 +1,77 @@
+{
+  "name": "jira-flow",
+  "version": "0.3.0-beta.1",
+  "description": "A CLI tool to link commits with JIRA issues.",
+  "main": "index.js",
+  "author": "Jaleel Bennett <jaleelbennett58@gmail.com>",
+  "homepage": "https://github.com/JaleelB/jira-flow",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JaleelB/jira-flow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JaleelB/jira-flow/issues"
+  },
+  "scripts": {
+    "prepublish": "./scripts/prepublish.sh",
+    "bump-version": "pnpx version-bump-prompt && pnpm run prepublish && git add package.json && git commit -m 'chore(release): bump version' && npm version $(node -pe \"require('./package.json').version\") && git push && git push --tags"
+  },
+  "go": {
+    "binaries": [
+      {
+        "name": "jira-flow",
+        "os": "darwin",
+        "arch": "amd64",
+        "path": "./bin/jira-flow-darwin-amd64",
+        "url": "https://github.com/JaleelB/jira-flow/releases/download/v{{version}}/jira-flow-darwin-amd64"
+      },
+      {
+        "name": "jira-flow",
+        "os": "linux",
+        "arch": "amd64",
+        "path": "./bin/jira-flow-linux-amd64",
+        "url": "https://github.com/JaleelB/jira-flow/releases/download/v{{version}}/jira-flow-linux-amd64"
+      },
+      {
+        "name": "jira-flow",
+        "os": "windows",
+        "arch": "amd64",
+        "path": "./bin/jira-flow-windows-amd64.exe",
+        "url": "https://github.com/JaleelB/jira-flow/releases/download/v{{version}}/jira-flow-windows-amd64.exe"
+      },
+      {
+        "name": "commitmsg",
+        "os": "darwin",
+        "arch": "amd64",
+        "path": "./bin/commitmsg-darwin-amd64",
+        "url": "https://github.com/JaleelB/jira-flow/releases/download/v{{version}}/commitmsg-darwin-amd64"
+      },
+      {
+        "name": "commitmsg",
+        "os": "linux",
+        "arch": "amd64",
+        "path": "./bin/commitmsg-linux-amd64",
+        "url": "https://github.com/JaleelB/jira-flow/releases/download/v{{version}}/commitmsg-linux-amd64"
+      },
+      {
+        "name": "commitmsg",
+        "os": "windows",
+        "arch": "amd64",
+        "path": "./bin/commitmsg-windows-amd64.exe",
+        "url": "https://github.com/JaleelB/jira-flow/releases/download/v{{version}}/commitmsg-windows-amd64.exe"
+      }
+    ]
+  },
+  "keywords": [
+    "jira",
+    "git",
+    "commit",
+    "cli",
+    "jira-flow"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@jsdevtools/version-bump-prompt": "^6.1.0",
+    "go-npm": "^0.1.9"
+  }
+}
