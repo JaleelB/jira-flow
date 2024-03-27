@@ -20,6 +20,9 @@ vendor/
 *.swo
 *.vscode
 
+# Log files
+node_modules/
+
 # OS-specific files
 .DS_Store
 Thumbs.db
