@@ -21,13 +21,17 @@ func ExecuteGitCommand(args ...string) (string, error) {
 }
 
 func SetGitHookScript(config *Config) error {
-    // Determine the correct binary based on the OS
+    // Determine the correct binary based on the OS and architecture
     var binaryName string
     switch runtime.GOOS {
     case "windows":
         binaryName = "commitmsg-windows.exe"
     case "darwin":
-        binaryName = "commitmsg-macos"
+        if runtime.GOARCH == "amd64" {
+            binaryName = "commitmsg-macos"
+        } else if runtime.GOARCH == "arm64" {
+            binaryName = "commitmsg-macos-arm64"
+        }
     case "linux":
         binaryName = "commitmsg-linux"
     default:
