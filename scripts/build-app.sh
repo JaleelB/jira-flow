@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # List of target OS/architectures
-platforms=("windows/amd64" "darwin/amd64" "linux/amd64")
+platforms=("windows/amd64" "darwin/amd64" "linux/amd64" "darwin/arm64")
 
 # Path to the main application entry point
 mainAppPath="../cmd/app"
