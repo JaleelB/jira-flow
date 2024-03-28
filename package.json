@@ -14,6 +14,8 @@
   },
   "scripts": {
     "prepublish": "./scripts/prepublish.sh",
+    "postinstall": "go-npm install",
+    "preuninstall": "go-npm uninstall",
     "bump-version": "pnpx version-bump-prompt && pnpm run prepublish && git add package.json && git commit -m 'chore(release): bump version' && npm version $(node -pe \"require('./package.json').version\") && git push && git push --tags"
   },
   "go": {
@@ -23,42 +25,42 @@
         "os": "darwin",
         "arch": "amd64",
         "path": "./bin/jira-flow-darwin-amd64",
-        "url": "https://github.com/JaleelB/jira-flow/releases/download/v{{version}}/jira-flow-darwin-amd64"
+        "url": "https://github.com/JaleelB/jira-flow/releases/download/0.3.0-beta.1/jira-flow-darwin-amd64"
       },
       {
         "name": "jira-flow",
         "os": "linux",
         "arch": "amd64",
         "path": "./bin/jira-flow-linux-amd64",
-        "url": "https://github.com/JaleelB/jira-flow/releases/download/v{{version}}/jira-flow-linux-amd64"
+        "url": "https://github.com/JaleelB/jira-flow/releases/download/0.3.0-beta.1/jira-flow-linux-amd64"
       },
       {
         "name": "jira-flow",
         "os": "windows",
         "arch": "amd64",
         "path": "./bin/jira-flow-windows-amd64.exe",
-        "url": "https://github.com/JaleelB/jira-flow/releases/download/v{{version}}/jira-flow-windows-amd64.exe"
+        "url": "https://github.com/JaleelB/jira-flow/releases/download/0.3.0-beta.1/jira-flow-windows-amd64.exe"
       },
       {
         "name": "commitmsg",
         "os": "darwin",
         "arch": "amd64",
         "path": "./bin/commitmsg-darwin-amd64",
-        "url": "https://github.com/JaleelB/jira-flow/releases/download/v{{version}}/commitmsg-darwin-amd64"
+        "url": "https://github.com/JaleelB/jira-flow/releases/download/0.3.0-beta.1/commitmsg-darwin-amd64"
       },
       {
         "name": "commitmsg",
         "os": "linux",
         "arch": "amd64",
         "path": "./bin/commitmsg-linux-amd64",
-        "url": "https://github.com/JaleelB/jira-flow/releases/download/v{{version}}/commitmsg-linux-amd64"
+        "url": "https://github.com/JaleelB/jira-flow/releases/download/0.3.0-beta.1/commitmsg-linux-amd64"
       },
       {
         "name": "commitmsg",
         "os": "windows",
         "arch": "amd64",
         "path": "./bin/commitmsg-windows-amd64.exe",
-        "url": "https://github.com/JaleelB/jira-flow/releases/download/v{{version}}/commitmsg-windows-amd64.exe"
+        "url": "https://github.com/JaleelB/jira-flow/releases/download/0.3.0-beta.1/commitmsg-windows-amd64.exe"
       }
     ]
   },
