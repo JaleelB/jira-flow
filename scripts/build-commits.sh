@@ -31,7 +31,7 @@ do
 
     if [ $GOOS != "windows" ]; then
         chmod +x $outputDir/$outputName
-    fis
+    fi
     
 done
 
