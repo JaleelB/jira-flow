@@ -12,30 +12,27 @@ import (
 
 // Function to execute git commands
 func ExecuteGitCommand(args ...string) (string, error) {
-	cmd := exec.Command("git", args...)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSuffix(string(output), "\n"), nil
+    cmd := exec.Command("git", args...)
+    output, err := cmd.CombinedOutput()
+    if err != nil {
+        return "", err
+    }
+    return strings.TrimSuffix(string(output), "\n"), nil
+}
+
+// Map of OS and architecture to binary names
+var binaryNames = map[string]string{
+    "windows/amd64": "commitmsg-windows-amd64.exe",
+    "darwin/amd64":  "commitmsg-darwin-amd64",
+    "linux/amd64":   "commitmsg-linux-amd64",
+    "darwin/arm64":  "commitmsg-darwin-arm64",
 }
 
 func SetGitHookScript(config *Config) error {
     // Determine the correct binary based on the OS and architecture
-    var binaryName string
-    switch runtime.GOOS {
-    case "windows":
-        binaryName = "commitmsg-windows.exe"
-    case "darwin":
-        if runtime.GOARCH == "amd64" {
-            binaryName = "commitmsg-macos"
-        } else if runtime.GOARCH == "arm64" {
-            binaryName = "commitmsg-macos-arm64"
-        }
-    case "linux":
-        binaryName = "commitmsg-linux"
-    default:
-        return fmt.Errorf("unsupported operating system")
+    binaryName, ok := binaryNames[runtime.GOOS+"/"+runtime.GOARCH]
+    if !ok {
+        return fmt.Errorf("unsupported operating system or architecture")
     }
 
     binaryPath := filepath.Join("bin", binaryName)
