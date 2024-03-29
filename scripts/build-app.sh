@@ -16,7 +16,7 @@ do
     GOARCH=${platform_split[1]}
     outputName='jira-flow-'$GOOS'-'$GOARCH
     if [ $GOOS = "windows" ]; then
-        outputN ame+='.exe'
+        outputName+='.exe'
     fi
 
     env GOOS=$GOOS GOARCH=$GOARCH go build -o $outputDir/$outputName $mainAppPath
@@ -24,6 +24,11 @@ do
         echo 'An error has occurred! Aborting the script execution...'
         exit 1
     fi
+
+    if [ $GOOS != "windows" ]; then
+        chmod +x $outputDir/$outputName
+    fi
+    
 done
 
 echo "Building done."
