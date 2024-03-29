@@ -1,23 +1,34 @@
 #!/bin/bash
 
-# Define the output directory for binaries
-BIN_DIR="../bin"
-mkdir -p $BIN_DIR
+# List of target OS/architectures
+platforms=("windows/amd64" "darwin/amd64" "linux/amd64" "darwin/arm64")
+
+# Path to the main application entry point
+mainAppPath="commitmsg.go"
+
+# Output directory for the binaries
+outputDir="../bin"
+mkdir -p $outputDir
 
 # Navigate to the script's directory
 cd "$(dirname "$0")"
 
-# Build for Linux
-env GOOS=linux GOARCH=amd64 go build -o ${BIN_DIR}/commitmsg-linux commitmsg.go
+for platform in "${platforms[@]}"
+do
+    platform_split=(${platform//\// })
+    GOOS=${platform_split[0]}
+    GOARCH=${platform_split[1]}
+    outputName='commitmsg-'$GOOS'-'$GOARCH
+    if [ $GOOS = "windows" ]; then
+        outputName+='.exe'
+    fi
 
-# Build for macOS
-env GOOS=darwin GOARCH=amd64 go build -o ${BIN_DIR}/commitmsg-macos commitmsg.go
+    env GOOS=$GOOS GOARCH=$GOARCH go build -o $outputDir/$outputName $mainAppPath
+    if [ $? -ne 0 ]; then
+        echo 'An error has occurred! Aborting the script execution...'
+        exit 1
+    fi
+    
+done
 
-# Build for macOS on arm64 (Apple Silicon)
-env GOOS=darwin GOARCH=arm64 go build -o ${BIN_DIR}/commitmsg-macos-arm64 commitmsg.go
-
-
-# Build for Windows
-env GOOS=windows GOARCH=amd64 go build -o ${BIN_DIR}/commitmsg-windows.exe commitmsg.go
-
-echo "Binaries compiled to ${BIN_DIR}"
+echo "Binaries compiled to ${outputDir}"
