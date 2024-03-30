@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 )
 
@@ -20,33 +19,13 @@ func ExecuteGitCommand(args ...string) (string, error) {
     return strings.TrimSuffix(string(output), "\n"), nil
 }
 
-// Map of OS and architecture to binary names
-var binaryNames = map[string]string{
-    "windows/amd64": "commitmsg-windows-amd64.exe",
-    "darwin/amd64":  "commitmsg-darwin-amd64",
-    "linux/amd64":   "commitmsg-linux-amd64",
-    "darwin/arm64":  "commitmsg-darwin-arm64",
-}
-
 func SetGitHookScript(config *Config) error {
-    // Determine the correct binary based on the OS and architecture
-    binaryName, ok := binaryNames[runtime.GOOS+"/"+runtime.GOARCH]
-    if !ok {
-        return fmt.Errorf("unsupported operating system or architecture")
-    }
-
-    binaryPath := filepath.Join("bin", binaryName)
-
-    // Check if binary exists
-    if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
-        return fmt.Errorf("binary does not exist: %v", binaryPath)
-    }
+    // Use a placeholder for the binary path
+    hookScript := `#!/bin/sh
+BINARY_PATH_PLACEHOLDER "$1"`
 
     // Path to the Git hook
     hookPath := filepath.Join(config.HookPath, "pre-commit")
-
-    // Prepare the hook script that will execute the binary
-    hookScript := fmt.Sprintf("#!/bin/sh\n%s \"$1\"", binaryPath)
 
     // Write the hook script to the hook path
     err := os.WriteFile(hookPath, []byte(hookScript), 0755)
@@ -54,9 +33,10 @@ func SetGitHookScript(config *Config) error {
         return fmt.Errorf("os.WriteFile: %v", err)
     }
 
-    fmt.Println("\nGit hook installed successfully.")
+    fmt.Println("\nGit hook placeholder script installed successfully.")
     return nil
 }
+
 
 func CheckGitAndHooksDir() error {
     // Check if git is installed
