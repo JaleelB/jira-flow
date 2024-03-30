@@ -82,9 +82,30 @@ func CLIMenu(
 				case "Automatically":
 					jiraManager.Config.AutoLink = true
 
-					// msg := fmt.Sprintf("\nYou have entered JIRA issue key: %q. The issue key will now prepeded to your commmits linking them to your JIRA issue.", result)
-					// fmt.Printf("%s", aurora.BrightMagenta(msg))
-					fmt.Println("\nAutomatic JIRA issue key tracking is enabled. The issue key will be extracted from the branch name and prepended to your commits, linking them to your JIRA issue.")
+					branchName, _ := GetCurrentBranchName()
+					issueKey, err := jiraManager.ExtractIssueKeyFromBranchName(branchName)
+
+					if err != nil {
+						fmt.Printf("\nFailed to extract JIRA issue key from branch name: %v\n", err)
+						return
+					}
+
+					jiraManager.Config.JiraKey = issueKey
+
+					checkDirErr := CheckGitAndHooksDir()
+					if checkDirErr != nil {
+						fmt.Printf("\nFailed to check git and hooks directory: %v\n", checkDirErr)
+						return
+					}
+
+					setHookErr := SetGitHookScript(jiraManager.Config)
+					if setHookErr != nil {
+						fmt.Printf("\nFailed to set git hook script: %v\n", err)
+						return
+					}
+
+					msg := fmt.Sprintf("\nSuccess! The issue key %q will now be prepended to your commits linking them to your JIRA issue.", issueKey)
+					fmt.Printf("%s", aurora.BrightMagenta(msg))			
 					
 				case "Manually":
 
