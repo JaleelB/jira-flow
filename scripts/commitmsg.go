@@ -1,4 +1,4 @@
-package scripts
+package main
 
 import (
 	"bufio"
@@ -9,7 +9,7 @@ import (
 	"github.com/JaleelB/jira-flow/internal"
 )
 
-func CommitMsg() {
+func main() {
     if len(os.Args) != 2 {
         fmt.Println("Usage: commitmsg <path to commit message file>")
         os.Exit(1)

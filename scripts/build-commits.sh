@@ -23,7 +23,7 @@ do
         outputName+='.exe'
     fi
 
-    env GOOS=$GOOS GOARCH=$GOARCH go build -o $outputDir/$outputName $mainAppPath
+    env GOOS=$GOOS GOARCH=$GOARCH go build -x -o $outputDir/$outputName $mainAppPath
     if [ $? -ne 0 ]; then
         echo 'An error has occurred! Aborting the script execution...'
         exit 1
