@@ -25,7 +25,7 @@ func SetGitHookScript(config *Config) error {
 BINARY_PATH_PLACEHOLDER "$1"`
 
     // Path to the Git hook
-    hookPath := filepath.Join(config.HookPath, "pre-commit")
+    hookPath := filepath.Join(config.HookPath, "commit-msg")
 
     // Write the hook script to the hook path
     err := os.WriteFile(hookPath, []byte(hookScript), 0755)
