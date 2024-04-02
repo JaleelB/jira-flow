@@ -14,7 +14,7 @@
   },
   "scripts": {
     "prepublish": "./scripts/prepublish.sh",
-    "postinstall": "go-npm install && node postinstall.js",
+    "postinstall": "go-npm install",
     "preuninstall": "go-npm uninstall",
     "bump-version": "pnpx version-bump-prompt && pnpm run prepublish && git add package.json && git commit -m 'chore(release): bump version' && npm version $(node -pe \"require('./package.json').version\") && git push && git push --tags"
   },
