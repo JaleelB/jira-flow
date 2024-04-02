@@ -1,13 +1,22 @@
 package internal
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 )
+
+var binaryNames = map[string]string{
+    "windows/amd64": "commitmsg-windows-amd64.exe",
+    "darwin/amd64":  "commitmsg-darwin-amd64",
+    "linux/amd64":   "commitmsg-linux-amd64",
+    "darwin/arm64":  "commitmsg-darwin-arm64",
+}
 
 // Function to execute git commands
 func ExecuteGitCommand(args ...string) (string, error) {
@@ -20,21 +29,65 @@ func ExecuteGitCommand(args ...string) (string, error) {
 }
 
 func SetGitHookScript(config *Config) error {
-    // Use a placeholder for the binary path
-    hookScript := `#!/bin/sh
-BINARY_PATH_PLACEHOLDER "$1"`
-
-    // Path to the Git hook
-    hookPath := filepath.Join(config.HookPath, "commit-msg")
-
-    // Write the hook script to the hook path
-    err := os.WriteFile(hookPath, []byte(hookScript), 0755)
+    globalBinPath, err := GetGlobalBinPath()
     if err != nil {
-        return fmt.Errorf("os.WriteFile: %v", err)
+        return fmt.Errorf("getting global bin path: %v", err)
     }
 
-    fmt.Println("\nGit hook placeholder script installed successfully.")
+    // Determine the correct binary based on the OS and architecture
+    binaryName, ok := binaryNames[runtime.GOOS+"/"+runtime.GOARCH]
+    if !ok {
+        return fmt.Errorf("unsupported operating system or architecture")
+    }
+
+    binaryPath := filepath.Join(globalBinPath, binaryName)
+
+    // Construct the hook script using the actual path to the binary.
+    hookScript := fmt.Sprintf("#!/bin/sh\n%s \"$@\"", binaryPath)
+    hookPath := filepath.Join(config.HookPath, "commit-msg")
+
+    // Ensure the .git/hooks directory exists.
+    if _, err := os.Stat(hookPath); os.IsNotExist(err) {
+        os.MkdirAll(filepath.Dir(hookPath), 0755)
+    }
+
+    // Write the hook script to the commit-msg hook.
+    err = os.WriteFile(hookPath, []byte(hookScript), 0755)
+    if err != nil {
+        return fmt.Errorf("writing commit-msg hook: %v", err)
+    }
+
+    fmt.Println("Git hook script set successfully.")
     return nil
+}
+
+func GetGlobalBinPath() (string, error) {
+	// Each package manager has its own command to reveal the global bin directory.
+	commands := map[string][]string{
+		"npm":  {"npm", "root", "-g"},
+		"pnpm": {"pnpm", "bin", "-g"},
+		"yarn": {"yarn", "global", "bin"},
+	}
+
+	for _, cmdParts := range commands {
+		// Prepare the command
+		cmd := exec.Command(cmdParts[0], cmdParts[1:]...)
+
+		// Capture the output
+		var out bytes.Buffer
+		cmd.Stdout = &out
+
+		// Execute the command
+		err := cmd.Run()
+		if err == nil {
+			// If the command succeeds, return the trimmed output
+			return strings.TrimSpace(out.String()), nil
+		}
+		// If the command failed, log the error and try the next command
+	}
+
+	//If none of the commands succeeded, return an error
+	return "", fmt.Errorf("failed to determine the global bin path using npm, pnpm, or yarn")
 }
 
 
