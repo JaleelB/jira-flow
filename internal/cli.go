@@ -29,7 +29,7 @@ func CLIMenu(
 
 	cmd := &cobra.Command{
 		Use:   "jira-flow init",
-		Short: "Interact with Jira from your command line",
+		Short: "Initialize JiraFlow",
 		Long:  `JiraFlow lets you link your commits with JIRA tickets directly from your command line.`,
 		Run: func(cmd *cobra.Command, args []string) {
 
