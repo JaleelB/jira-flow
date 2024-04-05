@@ -4,17 +4,25 @@ const { spawn } = require("child_process");
 const path = require("path");
 const os = require("os");
 
-const binaryNames = {
-  "win32/x64": "jira-flow-windows-amd64.exe",
-  "darwin/x64": "jira-flow-darwin-amd64",
-  "linux/x64": "jira-flow-linux-amd64",
-  "darwin/arm64": "jira-flow-darwin-arm64",
+const ARCHITECTURE_MAPPING = {
+  x64: "amd64",
+  arm64: "arm64",
+  ia32: "386",
 };
 
-const platformKey = `${os.platform()}/${os.arch()}`;
-const binaryName = binaryNames[platformKey];
+const PLATFORM_MAPPING = {
+  darwin: "darwin",
+  win32: "windows",
+  linux: "linux",
+  freebsd: "freebsd",
+};
 
-if (!binaryName) {
+const platform = PLATFORM_MAPPING[os.platform()];
+const arch = ARCHITECTURE_MAPPING[os.arch()];
+
+console.log(`Running on ${platform} ${arch}`);
+
+if (platform === undefined || arch === undefined) {
   console.error(`Unsupported platform: ${os.platform()} on ${os.arch()}`);
   process.exit(1);
 }

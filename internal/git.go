@@ -13,10 +13,27 @@ import (
 
 var binaryNames = map[string]string{
     "windows/amd64": "commitmsg-windows-amd64.exe",
+    "windows/386":   "commitmsg-windows-386.exe",
     "darwin/amd64":  "commitmsg-darwin-amd64",
-    "linux/amd64":   "commitmsg-linux-amd64",
     "darwin/arm64":  "commitmsg-darwin-arm64",
+    "linux/amd64":   "commitmsg-linux-amd64",
+    "linux/arm64":   "commitmsg-linux-arm64",
+    "linux/386":     "commitmsg-linux-386",
 }
+
+var architectureMapping = map[string]string{
+    "x64":  "amd64",
+    "arm":  "arm",
+    "arm64": "arm64",
+    "ia32": "386",
+}
+
+var platformMapping = map[string]string{
+  "darwin": "darwin",
+  "win32": "windows",
+  "linux": "linux",
+};
+
 
 // Function to execute git commands
 func ExecuteGitCommand(args ...string) (string, error) {
@@ -35,9 +52,21 @@ func SetGitHookScript(config *Config) error {
     }
 
     // Determine the correct binary based on the OS and architecture
-    binaryName, ok := binaryNames[runtime.GOOS+"/"+runtime.GOARCH]
+    arch := runtime.GOARCH
+    mappedArch, ok := architectureMapping[arch]
     if !ok {
-        return fmt.Errorf("unsupported operating system or architecture")
+        return fmt.Errorf("unsupported architecture")
+    }
+
+    platform := runtime.GOOS
+    mappedPlatform, ok := platformMapping[platform]
+    if !ok {
+        return fmt.Errorf("unsupported operating system")
+    }
+
+    binaryName, ok := binaryNames[mappedPlatform+"/"+mappedArch]
+    if !ok {
+        return fmt.Errorf("unsupported operating system and architecture")
     }
 
     binaryPath := filepath.Join(globalBinPath, binaryName)
