@@ -1,0 +1,57 @@
+# .goreleaser.yml
+project_name: jira-flow
+builds:
+  - id: "app"
+    main: ./cmd/app/main.go
+    binary: jira-flow
+    goos:
+      - darwin
+      - linux
+      - windows
+      - freebsd
+    goarch:
+      - amd64
+      - arm
+      - 386
+      - arm64
+    hooks:
+      pre: go mod tidy
+
+  - id: "commitmsg"
+    main: ./scripts/commitmsg.go
+    binary: commitmsg
+    goos:
+      - darwin
+      - linux
+      - windows
+      - freebsd
+    goarch:
+      - amd64
+      - arm
+      - 386
+      - arm64
+
+archives:
+  - id: app
+    builds:
+      - app
+    format: tar.gz
+    files:
+      - none
+
+  - id: commitmsg
+    builds:
+      - commitmsg
+    format: tar.gz
+    files:
+      - none
+
+checksum:
+  name_template: "checksums.txt"
+signs:
+  artifacts: checksum
+
+release:
+  github:
+    owner: JaleelB
+    name: jira-flow
