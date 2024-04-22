@@ -28,7 +28,6 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "@jsdevtools/version-bump-prompt": "^6.1.0",
-    "go-npm": "^0.1.9"
+    "@jsdevtools/version-bump-prompt": "^6.1.0"
   }
 }
