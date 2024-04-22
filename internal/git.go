@@ -11,16 +11,6 @@ import (
 	"strings"
 )
 
-var binaryNames = map[string]string{
-    "windows/amd64": "commitmsg-windows-amd64.exe",
-    "windows/386":   "commitmsg-windows-386.exe",
-    "darwin/amd64":  "commitmsg-darwin-amd64",
-    "darwin/arm64":  "commitmsg-darwin-arm64",
-    "linux/amd64":   "commitmsg-linux-amd64",
-    "linux/arm64":   "commitmsg-linux-arm64",
-    "linux/386":     "commitmsg-linux-386",
-}
-
 var architectureMapping = map[string]string{
     "x64":  "amd64",
     "arm":  "arm",
@@ -32,6 +22,7 @@ var platformMapping = map[string]string{
   "darwin": "darwin",
   "win32": "windows",
   "linux": "linux",
+  "freebsd": "freebsd",
 };
 
 
@@ -64,11 +55,10 @@ func SetGitHookScript(config *Config) error {
         return fmt.Errorf("unsupported operating system")
     }
 
-    binaryName, ok := binaryNames[mappedPlatform+"/"+mappedArch]
-    if !ok {
-        return fmt.Errorf("unsupported operating system and architecture")
+    binaryName := "commitmsg-" + mappedPlatform + "-" + mappedArch
+    if mappedPlatform == "windows" {
+        binaryName += ".exe"
     }
-
     binaryPath := filepath.Join(globalBinPath, binaryName)
 
     // Construct the hook script using the actual path to the binary.
