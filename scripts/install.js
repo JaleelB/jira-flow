@@ -5,6 +5,8 @@ const https = require("https");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
+const zlib = require("zlib");
+const tar = require("tar");
 const { execSync } = require("child_process");
 
 const architectureMapping = {
@@ -87,22 +89,21 @@ function getBinaries() {
   ];
 }
 
-function downloadBinary(url, outputPath) {
+function downloadAndExtractBinary(url, outputPath) {
   return new Promise((resolve, reject) => {
     const req = https.get(url, (res) => {
       if (res.statusCode === 200) {
-        const fileStream = fs.createWriteStream(outputPath);
-        res.pipe(fileStream);
-        fileStream.on("finish", () => {
-          fileStream.close(resolve);
-        });
+        res
+          .pipe(zlib.createGunzip())
+          .pipe(tar.extract({ cwd: outputPath, strip: 1 }))
+          .on("finish", resolve)
+          .on("error", reject);
       } else {
         reject(new Error(`Request Failed. Status Code: ${res.statusCode}`));
       }
     });
-    req.on("error", (e) => {
-      reject(e);
-    });
+
+    req.on("error", reject);
     req.end();
   });
 }
@@ -140,7 +141,7 @@ async function install() {
     const outputPath = path.join(binPath, binary.name);
     try {
       console.log(`Downloading ${binary.name} from ${binary.url}...`);
-      await downloadBinary(binary.url, outputPath);
+      await downloadAndExtractBinary(binary.url, outputPath);
       await verifyAndPlaceBinary(binary.name, binPath);
     } catch (error) {
       console.error(`Failed to install ${binary.name}:`, error);
