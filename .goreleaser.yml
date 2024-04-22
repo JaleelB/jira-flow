@@ -3,7 +3,7 @@ project_name: jira-flow
 builds:
   - id: "app"
     main: ./cmd/app/main.go
-    binary: jira-flow
+    binary: jiraflow
     goos:
       - darwin
       - linux
