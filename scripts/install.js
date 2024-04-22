@@ -23,6 +23,27 @@ const platformMapping = {
   freebsd: "freebsd",
 };
 
+function validateEnvironment() {
+  const platform = os.platform();
+  const arch = os.arch();
+
+  if (!platformMapping[platform] || !architectureMapping[arch]) {
+    console.error(`Unsupported platform or architecture: ${platform}/${arch}`);
+    process.exit(1);
+  }
+}
+
+function validateURLs(binaries) {
+  binaries.forEach((binary) => {
+    try {
+      new URL(binary.url);
+    } catch (error) {
+      console.error(`Invalid URL for binary ${binary.name}: ${binary.url}`);
+      process.exit(1);
+    }
+  });
+}
+
 function getGlobalBinPath() {
   let globalBinPath;
   try {
@@ -64,14 +85,6 @@ function getPackageJson() {
 }
 
 function getBinaries() {
-  const packageJson = getPackageJson();
-  const version = packageJson.version;
-
-  if (!version) {
-    console.error("Failed to get version from package.json");
-    process.exit(1);
-  }
-
   const platform = platformMapping[os.platform()];
   const arch = architectureMapping[os.arch()];
   const baseUrl =
@@ -124,10 +137,7 @@ async function verifyAndPlaceBinary(binaryName, binPath) {
   }
 }
 
-async function install() {
-  const binaries = getBinaries();
-  const binPath = getGlobalBinPath();
-
+async function install(binaries, binPath) {
   if (!binPath) {
     console.error("Failed to determine global bin path");
     process.exit(1);
@@ -152,4 +162,23 @@ async function install() {
   console.log("Installation complete.");
 }
 
-install();
+function main() {
+  validateEnvironment();
+
+  const packageJson = getPackageJson();
+  const version = packageJson.version;
+  if (!version) {
+    console.error("Version is missing in package.json");
+    process.exit(1);
+  }
+
+  const binaries = getBinaries(version);
+  validateURLs(binaries);
+
+  const binPath = getGlobalBinPath();
+  console.log(`Global binary path: ${binPath}`);
+
+  install(binaries, binPath);
+}
+
+main();
