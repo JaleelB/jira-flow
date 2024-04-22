@@ -22,11 +22,48 @@ const platformMapping = {
 };
 
 function getGlobalBinPath() {
-  return execSync("npm prefix -g").toString().trim();
+  let globalBinPath;
+  try {
+    // Attempt to get the global bin path using `npm bin -g`
+    globalBinPath = execSync("npm bin -g").toString().trim();
+  } catch (error) {
+    console.warn(
+      "Failed to determine global bin path using `npm bin -g`: ",
+      error.message
+    );
+    try {
+      // Fallback to using `npm prefix -g` if the above fails
+      globalBinPath = execSync("npm prefix -g").toString().trim() + "/bin";
+    } catch (fallbackError) {
+      console.error(
+        "Failed to determine global bin path using `npm prefix -g`: ",
+        fallbackError.message
+      );
+      throw new Error(
+        "Cannot determine the global bin path, installation cannot proceed."
+      );
+    }
+  }
+  return globalBinPath;
+}
+
+function getPackageJson() {
+  const packageJsonPath = path.join(".", "package.json");
+  if (!fs.existsSync(packageJsonPath)) {
+    console.error(
+      "Unable to find package.json. " +
+        "Please run this script at root of the package you want to be installed"
+    );
+    return;
+  }
+
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath));
+  return packageJson;
 }
 
 function getBinaries() {
-  const version = require("./package.json").version;
+  const packageJson = getPackageJson();
+  const version = packageJson.version;
 
   if (!version) {
     console.error("Failed to get version from package.json");
@@ -70,13 +107,13 @@ function downloadBinary(url, outputPath) {
   });
 }
 
-async function verifyAndPlaceBinary(binaryName, binPath, globalBinPath) {
+async function verifyAndPlaceBinary(binaryName, binPath) {
   const filePath = path.join(binPath, binaryName);
   if (!fs.existsSync(filePath)) {
     throw new Error(`Downloaded binary does not exist: ${binaryName}`);
   }
 
-  const targetPath = path.join(globalBinPath, binaryName);
+  const targetPath = binPath;
   fs.renameSync(filePath, targetPath);
   console.log(`Moved ${binaryName} to ${targetPath}`);
 
@@ -88,8 +125,12 @@ async function verifyAndPlaceBinary(binaryName, binPath, globalBinPath) {
 
 async function install() {
   const binaries = getBinaries();
-  const globalBinPath = getGlobalBinPath();
-  const binPath = path.join(__dirname, "bin");
+  const binPath = getGlobalBinPath();
+
+  if (!binPath) {
+    console.error("Failed to determine global bin path");
+    process.exit(1);
+  }
 
   if (!fs.existsSync(binPath)) {
     fs.mkdirSync(binPath, { recursive: true });
@@ -100,7 +141,7 @@ async function install() {
     try {
       console.log(`Downloading ${binary.name} from ${binary.url}...`);
       await downloadBinary(binary.url, outputPath);
-      await verifyAndPlaceBinary(binary.name, binPath, globalBinPath);
+      await verifyAndPlaceBinary(binary.name, binPath);
     } catch (error) {
       console.error(`Failed to install ${binary.name}:`, error);
       process.exit(1);
