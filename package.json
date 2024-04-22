@@ -19,7 +19,7 @@
     "postinstall": "./scripts/install.js",
     "preuninstall": "./scripts/uninstall.js",
     "prepublish": "./scripts/prepublish.sh",
-    "bump-version": "pnpx version-bump-prompt && pnpm run prepublish"
+    "bump-version": "pnpm run prepublish"
   },
   "keywords": [
     "jira",
