@@ -22,7 +22,7 @@ const platformMapping = {
 };
 
 function getGlobalBinPath() {
-  const commands = ["npm root -g", "pnpm bin -g", "yarn global bin"];
+  const commands = ["npm prefix -g", "pnpm bin -g", "yarn global bin"];
 
   for (const command of commands) {
     try {
