@@ -22,22 +22,7 @@ const platformMapping = {
 };
 
 function getGlobalBinPath() {
-  const commands = ["npm prefix -g", "pnpm bin -g", "yarn global bin"];
-
-  for (const command of commands) {
-    try {
-      const globalBinPath = execSync(command).toString().trim();
-      if (globalBinPath) {
-        return globalBinPath;
-      }
-    } catch (error) {
-      console.warn(`Command failed: ${command}`, error.message);
-    }
-  }
-
-  throw new Error(
-    "Failed to determine the global bin path using npm, pnpm, or yarn."
-  );
+  return execSync("npm prefix -g").toString().trim();
 }
 
 function getBinaries() {

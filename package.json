@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "A CLI tool to link commits with JIRA issues.",
   "main": "index.js",
-  "author": "Jaleel Bennett <jaleelbennett58@gmail.com>",
+  "author": "Jaleel Bennett <jaleelcodes@gmail.com>",
   "homepage": "https://github.com/JaleelB/jira-flow",
   "repository": {
     "type": "git",
@@ -13,7 +13,7 @@
     "url": "https://github.com/JaleelB/jira-flow/issues"
   },
   "bin": {
-    "jira-flow": "./scripts/jira-flow.js"
+    "jiraflow": "./scripts/jira-flow.js"
   },
   "scripts": {
     "prepublish": "./scripts/prepublish.sh",
