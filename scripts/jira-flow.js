@@ -17,6 +17,32 @@ const PLATFORM_MAPPING = {
   freebsd: "freebsd",
 };
 
+function getGlobalBinPath() {
+  let globalBinPath;
+  try {
+    // Attempt to get the global bin path using `npm bin -g`
+    globalBinPath = execSync("npm bin -g").toString().trim();
+  } catch (error) {
+    console.warn(
+      "Failed to determine global bin path using `npm bin -g`: ",
+      error.message
+    );
+    try {
+      // Fallback to using `npm prefix -g` if the above fails
+      globalBinPath = execSync("npm prefix -g").toString().trim() + "/bin";
+    } catch (fallbackError) {
+      console.error(
+        "Failed to determine global bin path using `npm prefix -g`: ",
+        fallbackError.message
+      );
+      throw new Error(
+        "Cannot determine the global bin path, installation cannot proceed."
+      );
+    }
+  }
+  return globalBinPath;
+}
+
 const platform = PLATFORM_MAPPING[os.platform()];
 const arch = ARCHITECTURE_MAPPING[os.arch()];
 
@@ -28,7 +54,7 @@ if (platform === undefined || arch === undefined) {
 }
 
 const binaryPrefix = "jiraflow";
-const globalBinPath = execFileSync("npm", ["prefix", "-g"]).toString().trim();
+const globalBinPath = getGlobalBinPath();
 const binaryPath = path.join(globalBinPath, binaryName);
 
 const binaryName = fs
