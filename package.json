@@ -1,6 +1,6 @@
 {
   "name": "jira-flow",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "A CLI tool to link commits with JIRA issues.",
   "main": "index.js",
   "author": "Jaleel Bennett <jaleelbennett58@gmail.com>",
@@ -16,7 +16,8 @@
     "jira-flow": "./scripts/jira-flow.js"
   },
   "scripts": {
-    "bump-version": "pnpx version-bump-prompt && pnpm run prepublish && git add package.json && git commit -m 'chore(release): bump version' && npm version $(node -pe \"require('./package.json').version\") && git push && git push --tags"
+    "prepublish": "./scripts/prepublish.sh",
+    "bump-version": "pnpx version-bump-prompt && pnpm run prepublish"
   },
   "keywords": [
     "jira",
