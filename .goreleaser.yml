@@ -1,7 +1,6 @@
-# .goreleaser.yml
 project_name: jira-flow
 builds:
-  - id: "app"
+  - id: "jiraflow"
     main: ./cmd/app/main.go
     binary: jiraflow
     goos:
@@ -32,24 +31,30 @@ builds:
       - arm64
 
 archives:
-  - id: app
+  - id: jiraflow
     builds:
-      - app
+      - jiraflow
     format: tar.gz
-    files:
-      - none
+    name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
   - id: commitmsg
     builds:
       - commitmsg
     format: tar.gz
-    files:
-      - none
+    name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
 checksum:
   name_template: "checksums.txt"
+
 signs:
-  artifacts: checksum
+  - artifacts: checksum
+    args:
+      - "--batch"
+      - "--yes"
+      - "--detach-sign"
+      - "--output"
+      - "${artifact}.sig"
+      - "${artifact}"
 
 release:
   github:
