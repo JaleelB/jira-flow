@@ -1,7 +1,7 @@
 {
   "name": "jira-flow",
-  "version": "0.1.0",
-  "description": "A CLI tool to link commits with JIRA issues.",
+  "version": "0.0.1",
+  "description": "A CLI tool to link git commits with JIRA issues.",
   "main": "index.js",
   "author": "Jaleel Bennett <jaleelcodes@gmail.com>",
   "homepage": "https://github.com/JaleelB/jira-flow",
@@ -13,7 +13,7 @@
     "url": "https://github.com/JaleelB/jira-flow/issues"
   },
   "bin": {
-    "jiraflow": "./scripts/jira-flow.js"
+    "jira-flow": "./scripts/jira-flow.js"
   },
   "scripts": {
     "postinstall": "./scripts/install.js",
