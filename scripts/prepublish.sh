@@ -1,13 +1,17 @@
 #!/bin/bash
 
-# Navigate to the root directory of the project
 cd "$(dirname "$0")"/..
 
-# Path to the package.json file
-PACKAGE_JSON="package.json"
-
-# Use version-bump-prompt to handle versioning and git tasks interactively
 echo "Starting the version bump process..."
-pnpx version-bump-prompt --commit --tag --push
+pnpx version-bump-prompt 
+
+NEW_VERSION=$(node -pe "require('./package.json').version")
+
+git commit -am "chore(release): bump version to ${NEW_VERSION}"
+
+git tag -s "v${NEW_VERSION}" -m "chore(release): tag version v${NEW_VERSION}"
+
+git push && git push --tags
 
 echo "Version bump and release preparations are complete."
+
