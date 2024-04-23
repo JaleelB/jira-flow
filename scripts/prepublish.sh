@@ -7,8 +7,7 @@ pnpx version-bump-prompt
 
 NEW_VERSION=$(node -pe "require('./package.json').version")
 
-git add package.json
-git commit -m "chore(release): bump version to ${NEW_VERSION}"
+git commit -am "chore(release): bump version to ${NEW_VERSION}"
 
 git tag -s "v${NEW_VERSION}" -m "chore(release): tag version v${NEW_VERSION}"
 
