@@ -48,12 +48,14 @@ checksum:
 
 signs:
   - artifacts: checksum
+    cmd: gpg2
     args:
       - "--batch"
-      - "--yes"
-      - "--detach-sign"
+      - "-u"
+      - "{{ .Env.GPG_FINGERPRINT }}"
       - "--output"
-      - "${artifact}.sig"
+      - "${signature}"
+      - "--detach-sign"
       - "${artifact}"
 
 release:
