@@ -13,7 +13,7 @@
     "url": "https://github.com/JaleelB/jira-flow/issues"
   },
   "bin": {
-    "jira-flow": "./scripts/jira-flow.js"
+    "jira-flow": "scripts/jira-flow.js"
   },
   "scripts": {
     "postinstall": "./scripts/install.js",
