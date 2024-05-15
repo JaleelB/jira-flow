@@ -3,47 +3,14 @@
 
 const fs = require("fs");
 const path = require("path");
-const os = require("os");
-const { execSync } = require("child_process");
+const { getGlobalBinPath } = require("./utils");
 
-function getGlobalBinPath() {
-  let globalBinPath;
-  try {
-    // Attempt to get the global bin path using `npm bin -g`
-    globalBinPath = execSync("npm bin -g").toString().trim();
-  } catch (error) {
-    console.warn(
-      "Failed to determine global bin path using `npm bin -g`: ",
-      error.message
-    );
-    try {
-      // Fallback to using `npm prefix -g` if the above fails
-      globalBinPath = execSync("npm prefix -g").toString().trim() + "/bin";
-    } catch (fallbackError) {
-      console.error(
-        "Failed to determine global bin path using `npm prefix -g`: ",
-        fallbackError.message
-      );
-      throw new Error(
-        "Cannot determine the global bin path, uninstallation cannot proceed."
-      );
-    }
-  }
-  return globalBinPath;
-}
-
-function removeBinary(binaryName) {
+function removeBinary(binaryPrefix) {
   const globalBinPath = getGlobalBinPath();
-  const platform = os.platform();
-  const arch = os.arch();
+
   const binaryName = fs
-    .readdirSync(binaryPath)
-    .find(
-      (file) =>
-        file.startsWith(binaryPrefix) &&
-        file.includes(platform) &&
-        file.includes(arch)
-    );
+    .readdirSync(globalBinPath)
+    .find((file) => file.startsWith(binaryPrefix));
   const binaryPath = path.join(globalBinPath, binaryName);
 
   if (fs.existsSync(binaryPath)) {
