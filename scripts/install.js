@@ -7,7 +7,7 @@ const path = require("path");
 const os = require("os");
 const zlib = require("zlib");
 const tar = require("tar");
-const { getGlobalBinPath, getInstalledVersion } = require("./utils");
+const { getGlobalBinPath } = require("./utils");
 
 const architectureMapping = {
   x64: "amd64",
@@ -154,9 +154,7 @@ async function install(binaries, binPath) {
 function main() {
   validateEnvironment();
 
-  const packageName = "jira-flow";
-  const version = getInstalledVersion(packageName);
-
+  const version = "%%VERSION%%";
   if (!version) {
     console.error("Package version missing");
     process.exit(1);
