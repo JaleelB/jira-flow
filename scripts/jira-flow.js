@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
-const { spawn, execSync } = require("child_process");
+const { spawn } = require("child_process");
 const path = require("path");
 const os = require("os");
+const fs = require("fs");
+const { getGlobalBinPath } = require("./utils");
 
 const ARCHITECTURE_MAPPING = {
   x64: "amd64",
@@ -17,36 +19,8 @@ const PLATFORM_MAPPING = {
   freebsd: "freebsd",
 };
 
-function getGlobalBinPath() {
-  let globalBinPath;
-  try {
-    // Attempt to get the global bin path using `npm bin -g`
-    globalBinPath = execSync("npm bin -g").toString().trim();
-  } catch (error) {
-    console.warn(
-      "Failed to determine global bin path using `npm bin -g`: ",
-      error.message
-    );
-    try {
-      // Fallback to using `npm prefix -g` if the above fails
-      globalBinPath = execSync("npm prefix -g").toString().trim() + "/bin";
-    } catch (fallbackError) {
-      console.error(
-        "Failed to determine global bin path using `npm prefix -g`: ",
-        fallbackError.message
-      );
-      throw new Error(
-        "Cannot determine the global bin path, installation cannot proceed."
-      );
-    }
-  }
-  return globalBinPath;
-}
-
 const platform = PLATFORM_MAPPING[os.platform()];
 const arch = ARCHITECTURE_MAPPING[os.arch()];
-
-console.log(`Running on ${platform} ${arch}`);
 
 if (platform === undefined || arch === undefined) {
   console.error(`Unsupported platform: ${os.platform()} on ${os.arch()}`);
@@ -55,10 +29,9 @@ if (platform === undefined || arch === undefined) {
 
 const binaryPrefix = "jiraflow";
 const globalBinPath = getGlobalBinPath();
-const binaryPath = path.join(globalBinPath, binaryName);
 
 const binaryName = fs
-  .readdirSync(binaryPath)
+  .readdirSync(globalBinPath)
   .find(
     (file) =>
       file.startsWith(binaryPrefix) &&
@@ -67,9 +40,13 @@ const binaryName = fs
   );
 
 if (!binaryName) {
-  console.error("No suitable binary found.");
+  console.error(
+    `Cannot find suitable jira-flow exectable binary for ${platform}/${arch} in ${globalBinPath}.`
+  );
   process.exit(1);
 }
+
+const binaryPath = path.join(globalBinPath, binaryName);
 
 // Spawn the correct binary and pass all arguments received by the script
 const subprocess = spawn(binaryPath, process.argv.slice(2), {
