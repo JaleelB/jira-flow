@@ -7,7 +7,7 @@ const path = require("path");
 const os = require("os");
 const zlib = require("zlib");
 const tar = require("tar");
-const { execSync } = require("child_process");
+const { getGlobalBinPath, getInstalledVersion } = require("./utils");
 
 const architectureMapping = {
   x64: "amd64",
@@ -44,51 +44,12 @@ function validateURLs(binaries) {
   });
 }
 
-function getGlobalBinPath() {
-  let globalBinPath;
-  try {
-    // Attempt to get the global bin path using `npm bin -g`
-    globalBinPath = execSync("npm bin -g").toString().trim();
-  } catch (error) {
-    console.warn(
-      "Failed to determine global bin path using `npm bin -g`: ",
-      error.message
-    );
-    try {
-      // Fallback to using `npm prefix -g` if the above fails
-      globalBinPath = execSync("npm prefix -g").toString().trim() + "/bin";
-    } catch (fallbackError) {
-      console.error(
-        "Failed to determine global bin path using `npm prefix -g`: ",
-        fallbackError.message
-      );
-      throw new Error(
-        "Cannot determine the global bin path, installation cannot proceed."
-      );
-    }
-  }
-  return globalBinPath;
-}
-
-function getPackageJson() {
-  const packageJsonPath = path.join(".", "package.json");
-  if (!fs.existsSync(packageJsonPath)) {
-    console.error(
-      "Unable to find package.json. " +
-        "Please run this script at root of the package you want to be installed"
-    );
-    return;
-  }
-
-  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath));
-  return packageJson;
-}
-
-function getBinaries() {
+function getBinaries(version) {
   const platform = platformMapping[os.platform()];
   const arch = architectureMapping[os.arch()];
+
   const baseUrl =
-    "https://github.com/JaleelB/jiraflow/releases/download/v" + version;
+    "https://github.com/JaleelB/jira-flow/releases/download/v" + version;
 
   return [
     {
@@ -102,38 +63,62 @@ function getBinaries() {
   ];
 }
 
-function downloadAndExtractBinary(url, outputPath) {
+function downloadAndExtractBinary(url, tempPath) {
   return new Promise((resolve, reject) => {
-    const req = https.get(url, (res) => {
-      if (res.statusCode === 200) {
-        res
-          .pipe(zlib.createGunzip())
-          .pipe(tar.extract({ cwd: outputPath, strip: 1 }))
-          .on("finish", resolve)
-          .on("error", reject);
-      } else {
-        reject(new Error(`Request Failed. Status Code: ${res.statusCode}`));
-      }
-    });
+    const makeRequest = (url) => {
+      const req = https.get(url, (res) => {
+        if (res.statusCode === 200) {
+          console.log(`Starting extraction to ${tempPath}`);
+          res
+            .pipe(zlib.createGunzip())
+            .pipe(tar.extract({ cwd: tempPath, strip: 0 })) // Check if strip is needed
+            .on("finish", () => {
+              console.log(
+                `Extraction finished. Contents of ${tempPath}:`,
+                fs.readdirSync(tempPath)
+              );
+              resolve(tempPath);
+            })
+            .on("error", (err) => {
+              console.error(`Extraction failed: ${err}`);
+              reject(err);
+            });
+        } else if (res.statusCode === 302 || res.statusCode === 301) {
+          console.log(
+            `Following redirect from ${url} to ${res.headers.location}`
+          );
+          makeRequest(res.headers.location);
+        } else {
+          reject(new Error(`Request Failed. Status Code: ${res.statusCode}`));
+        }
+      });
 
-    req.on("error", reject);
-    req.end();
+      req.on("error", (err) => {
+        console.error(`Request error: ${err}`);
+        reject(err);
+      });
+      req.end();
+    };
+
+    makeRequest(url);
   });
 }
 
-async function verifyAndPlaceBinary(binaryName, binPath) {
-  const filePath = path.join(binPath, binaryName);
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Downloaded binary does not exist: ${binaryName}`);
+async function verifyAndPlaceBinary(binaryName, binPath, extractPath) {
+  const actualBinaryPath = path.join(extractPath, binaryName);
+
+  if (!actualBinaryPath) {
+    // const files = fs.readdirSync(extractPath);
+    // console.error("Files in extractPath:", files);
+    throw new Error("Binary not found after extraction");
   }
 
-  const targetPath = binPath;
-  fs.renameSync(filePath, targetPath);
-  console.log(`Moved ${binaryName} to ${targetPath}`);
+  const finalBinaryPath = path.join(binPath, binaryName);
+  fs.renameSync(actualBinaryPath, finalBinaryPath);
 
+  // Set the appropriate permissions for the binary (if not on Windows)
   if (os.platform() !== "win32") {
-    fs.chmodSync(targetPath, "755");
-    console.log(`Made ${binaryName} executable`);
+    fs.chmodSync(finalBinaryPath, "755");
   }
 }
 
@@ -148,11 +133,15 @@ async function install(binaries, binPath) {
   }
 
   for (const binary of binaries) {
-    const outputPath = path.join(binPath, binary.name);
     try {
-      console.log(`Downloading ${binary.name} from ${binary.url}...`);
-      await downloadAndExtractBinary(binary.url, outputPath);
-      await verifyAndPlaceBinary(binary.name, binPath);
+      // a temporary directory for binary extraction
+      const tempPath = fs.mkdtempSync(path.join(os.tmpdir(), binary.name));
+
+      const extractPath = await downloadAndExtractBinary(binary.url, tempPath);
+      await verifyAndPlaceBinary(binary.name, binPath, extractPath);
+
+      // clean up the temporary directory
+      fs.rmdirSync(tempPath, { recursive: true });
     } catch (error) {
       console.error(`Failed to install ${binary.name}:`, error);
       process.exit(1);
@@ -165,10 +154,11 @@ async function install(binaries, binPath) {
 function main() {
   validateEnvironment();
 
-  const packageJson = getPackageJson();
-  const version = packageJson.version;
+  const packageName = "jira-flow";
+  const version = getInstalledVersion(packageName);
+
   if (!version) {
-    console.error("Version is missing in package.json");
+    console.error("Package version missing");
     process.exit(1);
   }
 

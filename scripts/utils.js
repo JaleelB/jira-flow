@@ -42,8 +42,23 @@ function getGlobalBinPath() {
   }
 }
 
-getGlobalBinPath();
+function getInstalledVersion(packageName) {
+  try {
+    const version = execSync(
+      `npm list -g ${packageName} --depth=0 | grep ${packageName}`
+    )
+      .toString()
+      .match(/@([0-9.]+)/)[1];
+    return version;
+  } catch (error) {
+    console.error(
+      `Failed to determine installed version for ${packageName}: ${error.message}`
+    );
+    return null;
+  }
+}
 
 module.exports = {
   getGlobalBinPath,
+  getInstalledVersion,
 };
