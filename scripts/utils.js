@@ -1,17 +1,32 @@
+#!/usr/bin/env node
+
 const { execSync } = require("child_process");
 const path = require("path");
+
+function compareVersions(v1, v2) {
+  const parts1 = v1.split(".").map(Number);
+  const parts2 = v2.split(".").map(Number);
+
+  for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+    const part1 = parts1[i] || 0;
+    const part2 = parts2[i] || 0;
+    if (part1 > part2) return 1;
+    if (part1 < part2) return -1;
+  }
+  return 0;
+}
 
 function getGlobalBinPath() {
   try {
     // Check the npm version
     const npmVersion = execSync("npm -v").toString().trim();
-    let globalBinPath;
+    let globalBinPath = "";
 
-    if (npmVersion >= "6.14.18" && npmVersion <= "8.19.4") {
-      // npm 6.x to 8.x uses `npm bin -g`
+    if (compareVersions(npmVersion, "8.19.4") <= 0) {
+      // For older or equal versions to 8.19.4
       globalBinPath = execSync("npm bin -g").toString().trim();
-    } else if (npmVersion >= "8.19.5") {
-      // Older versions use `npm config get prefix` and append '/bin'
+    } else {
+      // For newer versions after 8.19.4
       const prefix = execSync("npm config --global get prefix")
         .toString()
         .trim();
@@ -26,6 +41,8 @@ function getGlobalBinPath() {
     );
   }
 }
+
+getGlobalBinPath();
 
 module.exports = {
   getGlobalBinPath,
