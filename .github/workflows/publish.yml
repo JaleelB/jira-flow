@@ -17,6 +17,12 @@ jobs:
           node-version: 18.x
           registry-url: "https://registry.npmjs.org"
 
+      - name: Update install script with current version
+        run: |
+          NEW_VERSION=$(node -pe "require('./package.json').version")
+          sed -i "s/%%VERSION%%/${NEW_VERSION}/g" ./scripts/install.js
+          cat ./scripts/install.js
+
       - name: Publish to npm
         run: npm publish
         env:
