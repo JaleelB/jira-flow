@@ -32,12 +32,7 @@ const globalBinPath = getGlobalBinPath();
 
 const binaryName = fs
   .readdirSync(globalBinPath)
-  .find(
-    (file) =>
-      file.startsWith(binaryPrefix) &&
-      file.includes(platform) &&
-      file.includes(arch)
-  );
+  .find((file) => file.startsWith(binaryPrefix));
 
 if (!binaryName) {
   console.error(
