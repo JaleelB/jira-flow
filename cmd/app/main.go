@@ -3,12 +3,25 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 
 	"github.com/JaleelB/jira-flow/internal"
 	"github.com/spf13/cobra"
 )
 
+// checks if the current directory is a git repository.
+func checkIfGitRepo() bool {
+    cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
+    err := cmd.Run()
+    return err == nil
+}
+
 func main() {
+
+	if !checkIfGitRepo() {
+        fmt.Println("This command must be run inside a Git repository.")
+        os.Exit(1)
+    }
 
 	config := internal.NewConfig()  // create a new config object
 
