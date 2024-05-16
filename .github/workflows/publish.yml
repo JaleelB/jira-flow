@@ -1,19 +1,11 @@
 name: Publish
 on:
-  workflow_run:
-    workflows: ["Release"]
-    branches: [main]
-    types: [completed]
   workflow_dispatch:
-
-concurrency: ${{ github.workflow }}-${{ github.ref }}
-
-permissions:
-  contents: write
+  release:
+    types: [created]
 
 jobs:
   publish:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
