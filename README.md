@@ -36,6 +36,10 @@ $ jira-flow init
 
 Once set up, Jira-Flow will prepend commit messages with the JIRA issue key, either detected from the branch name or entered manually, enhancing the integration between the developer's code repository and the JIRA tracking system.
 
+### Linking Commits to JIRA Issues
+
+For more information on how JIRA issue keys can be used to reference issues in your development work, including commits, branches, and pull requests, see the official [Atlassian documentation](https://support.atlassian.com/jira-software-cloud/docs/reference-issues-in-your-development-work/).
+
 ### Contributing
 
 - Fork the repository
