@@ -16,8 +16,8 @@
     "jira-flow": "scripts/jira-flow.js"
   },
   "scripts": {
-    "postinstall": "./scripts/install.js",
-    "preuninstall": "./scripts/uninstall.js",
+    "postinstall": "node ./scripts/install.js",
+    "preuninstall": "node ./scripts/uninstall.js",
     "prepublish": "./scripts/prepublish.sh",
     "release": "pnpm run prepublish"
   },
