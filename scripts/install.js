@@ -105,6 +105,10 @@ function downloadAndExtractBinary(url, tempPath) {
 }
 
 async function verifyAndPlaceBinary(binaryName, binPath, extractPath) {
+  if (os.platform() === "win32") {
+    binaryName += ".exe";
+  }
+
   const actualBinaryPath = path.join(extractPath, binaryName);
 
   if (!actualBinaryPath) {
