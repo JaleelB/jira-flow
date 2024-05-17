@@ -2,15 +2,57 @@
 
 Jira-Flow is a CLI tool designed to link git commits with JIRA issues.
 
-## Installation
+### Installation
 
-To install Jira-Flow, run the following command:
+#### Using NPM (or any other package manager)
 
 ```sh
 npm install -g jira-flow
 ```
 
-## Usage
+#### From Source
+
+If you want to install Jira-Flow from source, follow these steps:
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/JaleelB/jira-flow.git
+   cd jira-flow
+   ```
+
+2. Build the project (assuming Go is installed):
+
+   ```bash
+   go build -o jira-flow ./cmd/jira-flow
+   ```
+
+3. Optionally, install the binary to a location in your PATH:
+
+   ```bash
+   sudo mv jira-flow /usr/local/bin
+   ```
+
+   On Windows, you may simply move `jira-flow.exe` to a directory that is included in your PATH.
+
+#### Manual Installation
+
+If you prefer not to use npm, you can manually download the binaries from the [GitHub Releases page](https://github.com/JaleelB/jira-flow/releases).
+
+1. Navigate to the [Releases page](https://github.com/JaleelB/jira-flow/releases) of Jira-Flow.
+2. Download the appropriate binary for your operating system and architecture.
+3. Extract the downloaded archive and place the binary in a directory included in your system's PATH.
+
+For example, on Unix-like systems:
+
+```bash
+tar -zxvf jiraflow_vX.X.X_os_arch.tar.gz
+sudo mv jiraflow /usr/local/bin
+```
+
+On Windows, extract the files and add the folder to your PATH using the environment settings.
+
+### Usage
 
 Once installed, you can start using Jira-Flow with the following command:
 
@@ -18,7 +60,7 @@ Once installed, you can start using Jira-Flow with the following command:
 jira-flow init
 ```
 
-## A Quick Example
+### A Quick Example
 
 Here's a glimpse of how Jira-Flow will work:
 
