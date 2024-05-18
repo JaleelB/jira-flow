@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -79,36 +78,6 @@ func SetGitHookScript(config *Config) error {
     fmt.Println("Git hook script set successfully.")
     return nil
 }
-
-func GetGlobalBinPath() (string, error) {
-	// Each package manager has its own command to reveal the global bin directory.
-	commands := map[string][]string{
-		"npm":  {"npm", "root", "-g"},
-		"pnpm": {"pnpm", "bin", "-g"},
-		"yarn": {"yarn", "global", "bin"},
-	}
-
-	for _, cmdParts := range commands {
-		// Prepare the command
-		cmd := exec.Command(cmdParts[0], cmdParts[1:]...)
-
-		// Capture the output
-		var out bytes.Buffer
-		cmd.Stdout = &out
-
-		// Execute the command
-		err := cmd.Run()
-		if err == nil {
-			// If the command succeeds, return the trimmed output
-			return strings.TrimSpace(out.String()), nil
-		}
-		// If the command failed, log the error and try the next command
-	}
-
-	//If none of the commands succeeded, return an error
-	return "", fmt.Errorf("failed to determine the global bin path using npm, pnpm, or yarn")
-}
-
 
 func CheckGitAndHooksDir() error {
     // Check if git is installed
