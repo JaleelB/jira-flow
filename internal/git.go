@@ -41,12 +41,12 @@ func SetGitHookScript(config *Config) error {
         return fmt.Errorf("getting global bin path: %v", err)
     }
 
-    // Determine the correct binary based on the OS and architecture
-    arch := runtime.GOARCH
-    mappedArch, ok := architectureMapping[arch]
-    if !ok {
-        return fmt.Errorf("unsupported architecture")
-    }
+    // // Determine the correct binary based on the OS and architecture
+    // arch := runtime.GOARCH
+    // mappedArch, ok := architectureMapping[arch]
+    // if !ok {
+    //     return fmt.Errorf("unsupported architecture")
+    // }
 
     platform := runtime.GOOS
     mappedPlatform, ok := platformMapping[platform]
@@ -54,7 +54,7 @@ func SetGitHookScript(config *Config) error {
         return fmt.Errorf("unsupported operating system")
     }
 
-    binaryName := "commitmsg-" + mappedPlatform + "-" + mappedArch
+    binaryName := "commitmsg"
     if mappedPlatform == "windows" {
         binaryName += ".exe"
     }
