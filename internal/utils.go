@@ -9,19 +9,19 @@ import (
 )
 
 func GetGlobalBinPath() (string, error) {
-    npmVersion, err := ExecuteGitCommand("npm", "-v")
+    npmVersion, err := ExecuteCommand("npm", "-v")
     if err != nil {
         return "", fmt.Errorf("failed to check npm version: %w", err)
     }
     globalBinPath := ""
 
     if compareVersions(npmVersion, "8.19.4") <= 0 {
-        globalBinPath, err = ExecuteGitCommand("npm", "bin", "-g")
+        globalBinPath, err = ExecuteCommand("npm", "bin", "-g")
         if err != nil {
             return "", fmt.Errorf("failed to get global bin path using 'npm bin -g': %w", err)
         }
     } else {
-        prefix, err := ExecuteGitCommand("npm", "config", "--global", "get", "prefix")
+        prefix, err := ExecuteCommand("npm", "config", "--global", "get", "prefix")
         if err != nil {
             return "", fmt.Errorf("failed to get npm global prefix: %w", err)
         }
