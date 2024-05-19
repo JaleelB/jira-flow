@@ -17,7 +17,7 @@ builds:
       pre: go mod tidy
 
   - id: "commitmsg"
-    main: ./scripts/commitmsg.go
+    main: ./hooks/commitmsg.go
     binary: commitmsg
     goos:
       - darwin
