@@ -38,20 +38,15 @@ func ExecuteGitCommand(args ...string) (string, error) {
 func SetGitHookScript(config *Config) error {
     globalBinPath, err := GetGlobalBinPath()
     if err != nil {
-        return fmt.Errorf("getting global bin path: %v", err)
+       fmt.Printf("getting global bin path: %v\n", err)
+        return err
     }
-
-    // // Determine the correct binary based on the OS and architecture
-    // arch := runtime.GOARCH
-    // mappedArch, ok := architectureMapping[arch]
-    // if !ok {
-    //     return fmt.Errorf("unsupported architecture")
-    // }
 
     platform := runtime.GOOS
     mappedPlatform, ok := platformMapping[platform]
     if !ok {
-        return fmt.Errorf("unsupported operating system")
+        fmt.Printf("unsupported operating system\n")
+        return err
     }
 
     binaryName := "commitmsg"
@@ -60,19 +55,23 @@ func SetGitHookScript(config *Config) error {
     }
     binaryPath := filepath.Join(globalBinPath, binaryName)
 
-    // Construct the hook script using the actual path to the binary.
     hookScript := fmt.Sprintf("#!/bin/sh\n%s \"$@\"", binaryPath)
     hookPath := filepath.Join(config.HookPath, "commit-msg")
 
-    // Ensure the .git/hooks directory exists.
+    fmt.Printf("Using binary path: %s\n", binaryPath)
+    fmt.Printf("Hook script path: %s\n", hookPath)
+
     if _, err := os.Stat(hookPath); os.IsNotExist(err) {
-        os.MkdirAll(filepath.Dir(hookPath), 0755)
+        if err := os.MkdirAll(filepath.Dir(hookPath), 0755); err != nil {
+            fmt.Printf("creating hook directory: %v\n", err)
+            return err
+        }
     }
 
-    // Write the hook script to the commit-msg hook.
     err = os.WriteFile(hookPath, []byte(hookScript), 0755)
     if err != nil {
-        return fmt.Errorf("writing commit-msg hook: %v", err)
+        fmt.Printf("writing commit-msg hook: %v\n", err)
+        return err
     }
 
     fmt.Println("Git hook script set successfully.")
@@ -83,13 +82,17 @@ func CheckGitAndHooksDir() error {
     // Check if git is installed
     _, err := exec.LookPath("git")
     if err != nil {
-        return fmt.Errorf("git is not installed: %w", err)
+        // return fmt.Errorf("git is not installed: %w", err)
+        fmt.Printf("git is not installed: %v\n", err)
+        return err
     }
 
     // Check if the script is being run from within a git repository
     gitRoot, err := ExecuteGitCommand("rev-parse", "--show-toplevel")
     if err != nil {
-        return fmt.Errorf("this doesn't seem to be a git repository: %w", err)
+        // return fmt.Errorf("this doesn't seem to be a git repository: %w", err)
+        fmt.Printf("this doesn't seem to be a git repository: %v\n", err)
+        return err
     }
 
     // Construct the full path to the .git/hooks directory
@@ -99,14 +102,18 @@ func CheckGitAndHooksDir() error {
     testFilePath := filepath.Join(hooksDir, ".tmp-hook-test")
     testFile, err := os.Create(testFilePath)
     if err != nil {
-        return fmt.Errorf("failed to create a file in the hooks directory to test writability: %w", err)
+        // return fmt.Errorf("failed to create a file in the hooks directory to test writability: %w", err)
+        fmt.Printf("failed to create a file in the hooks directory to test writability: %v\n", err)
+        return err
     }
     testFile.Close()
 
     // Clean up the temporary file
     err = os.Remove(testFilePath)
     if err != nil {
-        return fmt.Errorf("failed to remove the temporary file in the hooks directory: %w", err)
+        // return fmt.Errorf("failed to remove the temporary file in the hooks directory: %w", err)
+        fmt.Printf("failed to remove the temporary file in the hooks directory: %v\n", err)
+        return err
     }
 
     return nil
