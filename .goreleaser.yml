@@ -17,8 +17,22 @@ builds:
       pre: go mod tidy
 
   - id: "commitmsg"
-    main: ./hooks/commitmsg.go
+    main: ./hooks/commitmsg/main.go
     binary: commitmsg
+    goos:
+      - darwin
+      - linux
+      - windows
+      - freebsd
+    goarch:
+      - amd64
+      - arm
+      - 386
+      - arm64
+
+  - id: "postco"
+    main: ./hooks/post_checkout/main.go
+    binary: postco
     goos:
       - darwin
       - linux
@@ -40,6 +54,12 @@ archives:
   - id: commitmsg
     builds:
       - commitmsg
+    format: tar.gz
+    name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+  - id: postco
+    builds:
+      - postco
     format: tar.gz
     name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
