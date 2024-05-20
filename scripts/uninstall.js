@@ -24,6 +24,7 @@ function removeBinary(binaryPrefix) {
 function uninstall() {
   removeBinary("jiraflow");
   removeBinary("commitmsg");
+  removeBinary("postco");
 }
 
 uninstall();
