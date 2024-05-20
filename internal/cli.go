@@ -98,9 +98,14 @@ func CLIMenu(
 						return
 					}
 
-					setHookErr := SetGitHookScript(jiraManager.Config)
+					// setHookErr := SetGitHookScript(jiraManager.Config)
+					// if setHookErr != nil {
+					// 	fmt.Printf("\nFailed to set git hook script: %v\n", err)
+					// 	return
+					// }
+					setHookErr := SetGitHooks(jiraManager.Config)
 					if setHookErr != nil {
-						fmt.Printf("\nFailed to set git hook script: %v\n", err)
+						fmt.Printf("\nFailed to set git hooks: %v\n", setHookErr)
 						return
 					}
 
@@ -139,9 +144,14 @@ func CLIMenu(
 						return
 					}
 
-					setHookErr := SetGitHookScript(jiraManager.Config)
+					// setHookErr := SetGitHookScript(jiraManager.Config)
+					// if setHookErr != nil {
+					// 	fmt.Printf("\nFailed to set git hook script: %v\n", err)
+					// 	return
+					// }
+					setHookErr := SetGitHooks(jiraManager.Config)
 					if setHookErr != nil {
-						fmt.Printf("\nFailed to set git hook script: %v\n", err)
+						fmt.Printf("\nFailed to set git hooks: %v\n", setHookErr)
 						return
 					}
 					

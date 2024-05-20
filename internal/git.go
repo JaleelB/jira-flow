@@ -10,20 +10,12 @@ import (
 	"strings"
 )
 
-var architectureMapping = map[string]string{
-    "x64":  "amd64",
-    "arm":  "arm",
-    "arm64": "arm64",
-    "ia32": "386",
-}
-
 var platformMapping = map[string]string{
   "darwin": "darwin",
   "win32": "windows",
   "linux": "linux",
   "freebsd": "freebsd",
 };
-
 
 // Function to execute git commands
 func ExecuteGitCommand(args ...string) (string, error) {
@@ -35,47 +27,98 @@ func ExecuteGitCommand(args ...string) (string, error) {
     return strings.TrimSuffix(string(output), "\n"), nil
 }
 
-func SetGitHookScript(config *Config) error {
-    globalBinPath, err := GetGlobalBinPath()
-    if err != nil {
-       fmt.Printf("getting global bin path: %v\n", err)
-        return err
-    }
+// func SetGitHookScript(config *Config) error {
+//     globalBinPath, err := GetGlobalBinPath()
+//     if err != nil {
+//        fmt.Printf("getting global bin path: %v\n", err)
+//         return err
+//     }
 
-    platform := runtime.GOOS
-    mappedPlatform, ok := platformMapping[platform]
-    if !ok {
-        fmt.Printf("unsupported operating system\n")
-        return err
-    }
+//     platform := runtime.GOOS
+//     mappedPlatform, ok := platformMapping[platform]
+//     if !ok {
+//         fmt.Printf("unsupported operating system\n")
+//         return err
+//     }
 
-    binaryName := "commitmsg"
-    if mappedPlatform == "windows" {
-        binaryName += ".exe"
-    }
-    binaryPath := filepath.Join(globalBinPath, binaryName)
+//     binaryName := "commitmsg"
+//     if mappedPlatform == "windows" {
+//         binaryName += ".exe"
+//     }
+//     binaryPath := filepath.Join(globalBinPath, binaryName)
 
-    hookScript := fmt.Sprintf("#!/bin/sh\n%s \"$@\"", binaryPath)
-    hookPath := filepath.Join(config.HookPath, "commit-msg")
+//     hookScript := fmt.Sprintf("#!/bin/sh\n%s \"$@\"", binaryPath)
+//     hookPath := filepath.Join(config.HookPath, "commit-msg")
 
-    fmt.Printf("Using binary path: %s\n", binaryPath)
-    fmt.Printf("Hook script path: %s\n", hookPath)
+//     fmt.Printf("Using binary path: %s\n", binaryPath)
+//     fmt.Printf("Hook script path: %s\n", hookPath)
 
-    if _, err := os.Stat(hookPath); os.IsNotExist(err) {
-        if err := os.MkdirAll(filepath.Dir(hookPath), 0755); err != nil {
-            fmt.Printf("creating hook directory: %v\n", err)
-            return err
-        }
-    }
+//     if _, err := os.Stat(hookPath); os.IsNotExist(err) {
+//         if err := os.MkdirAll(filepath.Dir(hookPath), 0755); err != nil {
+//             fmt.Printf("creating hook directory: %v\n", err)
+//             return err
+//         }
+//     }
 
-    err = os.WriteFile(hookPath, []byte(hookScript), 0755)
-    if err != nil {
-        fmt.Printf("writing commit-msg hook: %v\n", err)
-        return err
-    }
+//     err = os.WriteFile(hookPath, []byte(hookScript), 0755)
+//     if err != nil {
+//         fmt.Printf("writing commit-msg hook: %v\n", err)
+//         return err
+//     }
 
-    fmt.Println("Git hook script set successfully.")
-    return nil
+//     fmt.Println("Git hook script set successfully.")
+//     return nil
+// }
+// configures all necessary Git hooks
+func SetGitHooks(config *Config) error {
+	if err := SetCommitMsgHook(config); err != nil {
+		return fmt.Errorf("setting commit message hook: %w", err)
+	}
+
+	if err := SetPostCheckoutHook(config); err != nil {
+		return fmt.Errorf("setting post-checkout hook: %w", err)
+	}
+
+	return nil
+}
+
+func SetCommitMsgHook(config *Config) error {
+	hookPath := filepath.Join(config.HookPath, "commit-msg")
+	hookScript := generateHookScript(config, "commitmsg")
+
+	return installHookScript(hookScript, hookPath)
+}
+
+func SetPostCheckoutHook(config *Config) error {
+	hookPath := filepath.Join(config.HookPath, "post-checkout")
+	hookScript := generateHookScript(config, "postco")  
+
+	return installHookScript(hookScript, hookPath)
+}
+
+func generateHookScript(config *Config, scriptName string) string {
+	binaryPath := getBinaryPath(config, scriptName)
+	return fmt.Sprintf("#!/bin/sh\n%s \"$@\"", binaryPath)
+}
+
+func getBinaryPath(config *Config, scriptName string) string {
+	globalBinPath, _ := GetGlobalBinPath()  // Handle error appropriately
+	platform := runtime.GOOS
+	binaryName := scriptName
+	if platform == "windows" {
+		binaryName += ".exe"
+	}
+	return filepath.Join(globalBinPath, binaryName)
+}
+
+func installHookScript(hookScript, hookPath string) error {
+	if _, err := os.Stat(hookPath); os.IsNotExist(err) {
+		if err := os.MkdirAll(filepath.Dir(hookPath), 0755); err != nil {
+			return fmt.Errorf("creating hook directory: %w", err)
+		}
+	}
+
+	return os.WriteFile(hookPath, []byte(hookScript), 0755)
 }
 
 func CheckGitAndHooksDir() error {

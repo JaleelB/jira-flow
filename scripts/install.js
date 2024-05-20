@@ -60,6 +60,10 @@ function getBinaries(version) {
       name: "commitmsg",
       url: `${baseUrl}/commitmsg_${version}_${platform}_${arch}.tar.gz`,
     },
+    {
+      name: "postco",
+      url: `${baseUrl}/postco_${version}_${platform}_${arch}.tar.gz`,
+    },
   ];
 }
 
