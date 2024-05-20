@@ -91,7 +91,7 @@ func SetCommitMsgHook(config *Config) error {
 
 func SetPostCheckoutHook(config *Config) error {
 	hookPath := filepath.Join(config.HookPath, "post-checkout")
-	hookScript := generateHookScript(config, "post_checkout")  
+	hookScript := generateHookScript(config, "postco")  
 
 	return installHookScript(hookScript, hookPath)
 }
