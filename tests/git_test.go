@@ -79,7 +79,8 @@ func TestSetGitHookScript(
 	for _, tt := range tests {
 
 		t.Run(tt.name, func(t *testing.T) {
-			err := internal.SetGitHookScript(config)
+			// err := internal.SetGitHookScript(config)
+			err := internal.SetGitHooks(config)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SetGitHookScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
