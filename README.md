@@ -12,7 +12,7 @@ npm install -g jira-flow
 
 #### From Source
 
-If you want to install Jira-Flow from source, follow these steps:
+To install Jira-Flow from source, including all associated binaries (`jiraflow`, `commitmsg`, `postco`), follow these steps:
 
 1. Clone the repository:
 
@@ -24,16 +24,20 @@ If you want to install Jira-Flow from source, follow these steps:
 2. Build the project (assuming Go is installed):
 
    ```bash
-   go build -o jira-flow ./cmd/jira-flow
+   go build -o jiraflow ./cmd/jiraflow/main.go
+   go build -o commitmsg ./hooks/commitmsg/main.go
+   go build -o postco ./hooks/postco/main.go
    ```
 
 3. Optionally, install the binary to a location in your PATH:
 
    ```bash
-   sudo mv jira-flow /usr/local/bin
+   sudo mv jiraflow /usr/local/bin
+   sudo mv commitmsg /usr/local/bin
+   sudo mv postco /usr/local/bin
    ```
 
-   On Windows, you may simply move `jira-flow.exe` to a directory that is included in your PATH.
+   On Windows, move the `.exe` files to a directory that is included in your PATH.
 
 #### Manual Installation
 
@@ -48,6 +52,10 @@ For example, on Unix-like systems:
 ```bash
 tar -zxvf jiraflow_vX.X.X_os_arch.tar.gz
 sudo mv jiraflow /usr/local/bin
+tar -zxvf commitmsg_vX.X.X_os_arch.tar.gz
+sudo mv commitmsg /usr/local/bin
+tar -zxvf postco_vX.X.X_os_arch.tar.gz
+sudo mv postco /usr/local/bin
 ```
 
 On Windows, extract the files and add the folder to your PATH using the environment settings.
