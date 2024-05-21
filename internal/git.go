@@ -96,10 +96,20 @@ func SetPostCheckoutHook(config *Config) error {
 	return installHookScript(hookScript, hookPath)
 }
 
+// func generateHookScript(config *Config, scriptName string) string {
+// 	binaryPath := getBinaryPath(config, scriptName)
+// 	return fmt.Sprintf("#!/bin/sh\n%s \"$@\"", binaryPath)
+// }
 func generateHookScript(config *Config, scriptName string) string {
-	binaryPath := getBinaryPath(config, scriptName)
-	return fmt.Sprintf("#!/bin/sh\n%s \"$@\"", binaryPath)
+    binaryPath := getBinaryPath(config, scriptName)
+    // For Windows, ensure backslashes are properly escaped and the path is quoted
+    if runtime.GOOS == "windows" {
+        binaryPath = strings.ReplaceAll(binaryPath, `\`, `\\`) // Escape backslashes
+        binaryPath = `"` + binaryPath + `"` // Quote the path
+    }
+    return fmt.Sprintf("#!/bin/sh\n%s \"$@\"", binaryPath)
 }
+
 
 func getBinaryPath(config *Config, scriptName string) string {
 	globalBinPath, _ := GetGlobalBinPath()  // Handle error appropriately
