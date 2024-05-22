@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -61,4 +62,15 @@ func ExecuteCommand(command string, args ...string) (string, error) {
 		return "", fmt.Errorf("failed to execute command: %w", err)
 	}
 	return strings.TrimSpace(string(output)), nil
+}
+
+func RemoveGitHooks(hookPath string) error {
+    hooks := []string{"commit-msg", "post-checkout"}
+    for _, hook := range hooks {
+        hookFile := filepath.Join(hookPath, hook)
+        if err := os.Remove(hookFile); err != nil {
+            return fmt.Errorf("failed to remove %s: %w", hook, err)
+        }
+    }
+    return nil
 }
