@@ -70,17 +70,24 @@ jira-flow init
 
 ### A Quick Example
 
-Here's a glimpse of how Jira-Flow will work:
+Here’s a quick example of initializing Jira-Flow and configuring it to automatically detect JIRA issue keys:
 
 ```bash
-# Running Jira-Flow for the first time in a repository
 $ jira-flow init
+# Welcome message and logo displayed
+? How would you like to proceed:
+  ▸ Configure Jira-Flow
+    Remove Jira-Flow
+    Exit Jira-Flow
 
-# The interactive CLI will present the user with a menu:
-1. Auto-detect JIRA issue key from branch name.
-2. Manually enter the JIRA issue key.
+# User selects 'Configure Jira-Flow'
+? Choose configuration method:
+  ▸ Automatically link commits to Jira issues based on branch name
+    Manually link commits to Jira issues by entering the Jira issue key
 
-# User selects option 1 and the tool configures the Git hook automatically.
+# User chooses 'Automatically'
+# Success message confirming automatic linking
+"Success! The JIRA issue key will now be prepended to your commits."
 
 ```
 
