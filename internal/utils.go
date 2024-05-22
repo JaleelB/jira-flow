@@ -66,11 +66,28 @@ func ExecuteCommand(command string, args ...string) (string, error) {
 
 func RemoveGitHooks(hookPath string) error {
     hooks := []string{"commit-msg", "post-checkout"}
+    var errors []string
+
     for _, hook := range hooks {
         hookFile := filepath.Join(hookPath, hook)
+        if _, err := os.Stat(hookFile); os.IsNotExist(err) {
+            // If the hook file does not exist, skip the removal and continue.
+            fmt.Printf("No %s hook to remove.\n", hook)
+            continue
+        }
+        
         if err := os.Remove(hookFile); err != nil {
-            return fmt.Errorf("failed to remove %s: %w", hook, err)
+            // Collect errors instead of returning immediately.
+            errors = append(errors, fmt.Sprintf("failed to remove %s: %v", hook, err))
+        } else {
+            fmt.Printf("Successfully removed %s hook.\n", hook)
         }
     }
+
+    // If there were any errors during the removal process, concatenate them and return as a single error.
+    if len(errors) > 0 {
+        return fmt.Errorf("errors occurred while removing hooks: %s", strings.Join(errors, ", "))
+    }
+
     return nil
 }
