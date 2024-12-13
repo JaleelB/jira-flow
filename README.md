@@ -110,3 +110,7 @@ For more information on how JIRA issue keys can be used to reference issues in y
   git push origin fix/amazingFix
   ```
 - Open a pull request
+
+### Checking JiraFlow Status
+
+You can check if JiraFlow is active in your repository:
