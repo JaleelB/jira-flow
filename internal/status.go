@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/logrusorgru/aurora"
 )
 
 func CheckStatus(config *Config) {
@@ -14,14 +16,19 @@ func CheckStatus(config *Config) {
 
 	isActive := isHookPresent(commitMsgHook) && isHookPresent(postCheckoutHook)
 	
+	fmt.Println("\nJiraFlow Status:")
+	fmt.Println("---------------")
+	
 	if isActive {
-		fmt.Println("✓ JiraFlow is active in this repository")
-		fmt.Println("Installed hooks:")
-		fmt.Println("  - commit-msg")
-		fmt.Println("  - post-checkout")
+		fmt.Println(aurora.BrightGreen("✓ JiraFlow is active in this repository"))
+		fmt.Println(aurora.White("\nInstalled hooks:"))
+		fmt.Println(aurora.BrightCyan("  - commit-msg"))
+		fmt.Println(aurora.BrightCyan("  - post-checkout"))
 	} else {
-		fmt.Println("✗ JiraFlow is not active in this repository")
+		fmt.Println(aurora.BrightRed("✗ JiraFlow is not active in this repository"))
+		fmt.Println(aurora.Gray(12, "\nRun 'jira-flow init' to configure JiraFlow"))
 	}
+	fmt.Println() // Add empty line for spacing
 }
 
 func isHookPresent(hookPath string) bool {

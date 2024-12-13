@@ -166,7 +166,7 @@ func CLIMenu(
 
 			mainOptions := []options{
 				{Name: "Configure", Context: "Configure JiraFlow for this repository"},
-				{Name: "Status", Context: "Check JiraFlow status"},
+				{Name: "Status", Context: "Check JiraFlow status in this repository"},
 				{Name: "Remove", Context: "Remove JiraFlow from this repository"},
 				{Name: "Exit", Context: "Exit JiraFlow"},
 			}
@@ -197,6 +197,8 @@ func CLIMenu(
             switch mainOptions[idx].Name {
 				case "Configure":
 					configureJiraFlow(jiraManager)
+				case "Status":
+					CheckStatus(config)
 				case "Remove":
 					removeJiraFlow(jiraManager)
 				case "Exit":
