@@ -185,7 +185,7 @@ func CLIMenu(
                 Label:     "What would you like to do?",
                 Items:     mainOptions,
                 Templates: mainTemplates,
-                Size:      3,
+                Size:      4,
             }
 
             idx, _, err := mainSelectPrompt.Run()
