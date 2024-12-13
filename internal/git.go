@@ -10,13 +10,6 @@ import (
 	"strings"
 )
 
-var platformMapping = map[string]string{
-  "darwin": "darwin",
-  "win32": "windows",
-  "linux": "linux",
-  "freebsd": "freebsd",
-};
-
 // Function to execute git commands
 func ExecuteGitCommand(args ...string) (string, error) {
     cmd := exec.Command("git", args...)
@@ -27,48 +20,6 @@ func ExecuteGitCommand(args ...string) (string, error) {
     return strings.TrimSuffix(string(output), "\n"), nil
 }
 
-// func SetGitHookScript(config *Config) error {
-//     globalBinPath, err := GetGlobalBinPath()
-//     if err != nil {
-//        fmt.Printf("getting global bin path: %v\n", err)
-//         return err
-//     }
-
-//     platform := runtime.GOOS
-//     mappedPlatform, ok := platformMapping[platform]
-//     if !ok {
-//         fmt.Printf("unsupported operating system\n")
-//         return err
-//     }
-
-//     binaryName := "commitmsg"
-//     if mappedPlatform == "windows" {
-//         binaryName += ".exe"
-//     }
-//     binaryPath := filepath.Join(globalBinPath, binaryName)
-
-//     hookScript := fmt.Sprintf("#!/bin/sh\n%s \"$@\"", binaryPath)
-//     hookPath := filepath.Join(config.HookPath, "commit-msg")
-
-//     fmt.Printf("Using binary path: %s\n", binaryPath)
-//     fmt.Printf("Hook script path: %s\n", hookPath)
-
-//     if _, err := os.Stat(hookPath); os.IsNotExist(err) {
-//         if err := os.MkdirAll(filepath.Dir(hookPath), 0755); err != nil {
-//             fmt.Printf("creating hook directory: %v\n", err)
-//             return err
-//         }
-//     }
-
-//     err = os.WriteFile(hookPath, []byte(hookScript), 0755)
-//     if err != nil {
-//         fmt.Printf("writing commit-msg hook: %v\n", err)
-//         return err
-//     }
-
-//     fmt.Println("Git hook script set successfully.")
-//     return nil
-// }
 // configures all necessary Git hooks
 func SetGitHooks(config *Config) error {
 	if err := SetCommitMsgHook(config); err != nil {
