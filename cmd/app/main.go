@@ -34,6 +34,25 @@ func main() {
 		},
 	}
 
+	// Add status command
+	statusCmd := &cobra.Command{
+		Use:   "status",
+		Short: "Check or modify JiraFlow status in current repository",
+		Run: func(cmd *cobra.Command, args []string) {
+			internal.CheckStatus(config)
+			
+			// Only prompt for action if JiraFlow is in a different state than desired
+			if len(args) > 0 && args[0] == "--toggle" {
+				active := internal.IsJiraFlowActive()
+				if err := internal.ToggleJiraFlow(config, !active); err != nil {
+					fmt.Printf("Error: %v\n", err)
+					os.Exit(1)
+				}
+			}
+		},
+	}
+	rootCmd.AddCommand(statusCmd)
+
 	// Execute the root command
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
