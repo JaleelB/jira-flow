@@ -62,15 +62,55 @@ On Windows, extract the files and add the folder to your PATH using the environm
 
 ### Usage
 
-Once installed, you can start using Jira-Flow with the following command:
+Once installed, you can use Jira-Flow with the following commands:
 
-```sh
+```bash
+# Initialize JiraFlow
 jira-flow init
+
+# Check JiraFlow status
+jira-flow status
+
+# Toggle JiraFlow on/off
+jira-flow status --toggle
 ```
+
+### Commands
+
+- `init` - Initialize JiraFlow in your repository
+  ```bash
+  jira-flow init
+  ```
+  This opens an interactive menu where you can:
+  - Configure automatic/manual JIRA issue linking
+  - Check JiraFlow status
+  - Remove JiraFlow
+- `status` - Check JiraFlow configuration status
+
+  ```bash
+  jira-flow status
+  ```
+
+  Shows whether JiraFlow is active and which hooks are installed.
+
+  Use `--toggle` flag to enable/disable JiraFlow:
+
+  ```bash
+  jira-flow status --toggle
+  ```
+
+### Interactive Menu
+
+When running `jira-flow init`, you'll see an interactive menu with these options:
+
+1. **Configure** - Set up JiraFlow for your repository
+2. **Status** - Check current JiraFlow status
+3. **Remove** - Remove JiraFlow from repository
+4. **Exit** - Exit the CLI
 
 ### A Quick Example
 
-Here’s a quick example of initializing Jira-Flow and configuring it to automatically detect JIRA issue keys:
+Here's a quick example of initializing Jira-Flow and configuring it to automatically detect JIRA issue keys:
 
 ```bash
 $ jira-flow init
