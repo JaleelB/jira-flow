@@ -30,6 +30,7 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "@changesets/cli": "^2.27.12",
     "@jsdevtools/version-bump-prompt": "^6.1.0"
   },
   "dependencies": {
