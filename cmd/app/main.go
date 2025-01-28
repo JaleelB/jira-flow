@@ -26,7 +26,8 @@ func main() {
 	config := internal.NewConfig()  // create a new config object
 
 	rootCmd := &cobra.Command{
-		Use: "myapp",
+		Use:   "jira-flow",
+		Short: "JiraFlow CLI tool",
 		Run: func(cmd *cobra.Command, args []string) {
 			// run the menu command by default, passing in the config
 			menuCmd := internal.CLIMenu(config)
@@ -52,6 +53,17 @@ func main() {
 		},
 	}
 	rootCmd.AddCommand(statusCmd)
+
+	// Add init command
+	initCmd := &cobra.Command{
+		Use:   "init",
+		Short: "Initialize JiraFlow in the current repository",
+		Run: func(cmd *cobra.Command, args []string) {
+			menuCmd := internal.CLIMenu(config)
+			menuCmd.Execute()
+		},
+	}
+	rootCmd.AddCommand(initCmd)
 
 	// Execute the root command
 	if err := rootCmd.Execute(); err != nil {
