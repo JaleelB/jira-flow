@@ -132,6 +132,11 @@ func GetCurrentBranchName() (string, error) {
 }
 
 func (jm *JiraManager) ExtractIssueKeyFromBranchName(branchName string) (string, error) {
+	// Skip extraction for main/master branches
+	if branchName == "main" || branchName == "master" {
+		return "", nil // Return empty string without error for main/master
+	}
+	
 	pattern := regexp.MustCompile(jm.Config.BranchPattern)
 	matches := pattern.FindStringSubmatch(branchName)
 	if len(matches) == 0 {
