@@ -9,21 +9,34 @@ import (
 )
 
 func main() {
-    branchName, err := internal.GetCurrentBranchName()
-    if err != nil {
-        fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-        os.Exit(1)
-    }
+	// Get the new branch name
+	newBranchName, err := internal.GetCurrentBranchName()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting branch name: %v\n", err)
+		os.Exit(0)
+	}
 
-    config := internal.NewConfig()
-    jiraManager := internal.NewJiraManager(config)
+	// Skip for main/master branches
+	if newBranchName == "main" || newBranchName == "master" {
+		fmt.Println("Switched to", newBranchName, "branch")
+		os.Exit(0)
+	}
 
-    issueKey, err := jiraManager.ExtractIssueKeyFromBranchName(branchName)
-    if err == nil {
-        description := aurora.BrightMagenta(fmt.Sprintf("Switched to branch '%s' with JIRA issue key: %s\n", branchName, issueKey))
-        fmt.Println(description)
-    } else {
-        description := aurora.BrightMagenta(fmt.Sprintf("Switched to branch '%s' with no associated JIRA issue key.\n", branchName))
-        fmt.Println(description)
-    }
+	config := internal.NewConfig()
+	jiraManager := internal.NewJiraManager(config)
+
+	// Extract JIRA issue key from branch name
+	issueKey, err := jiraManager.ExtractIssueKeyFromBranchName(newBranchName)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "No JIRA issue key found in branch name\n")
+		os.Exit(0)
+	}
+
+	if err == nil {
+		description := aurora.BrightMagenta(fmt.Sprintf("Switched to branch '%s' with JIRA issue key: %s\n", newBranchName, issueKey))
+		fmt.Println(description)
+	} else {
+		description := aurora.BrightMagenta(fmt.Sprintf("Switched to branch '%s' with no associated JIRA issue key.\n", newBranchName))
+		fmt.Println(description)
+	}
 }
