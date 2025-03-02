@@ -13,30 +13,27 @@ func TestValidateJiraKey(t *testing.T) {
     tests := []struct {
         name           string
         input          string
-        branchPattern  string
         wantErr        bool
     }{
         {
             name:          "valid JIRA key",
             input:         "ABC-1234",
-            branchPattern: branchPattern,
             wantErr:       false,
         },
         {
             name:          "invalid JIRA key",
             input:         "ABC1234",
-            branchPattern: branchPattern,
             wantErr:       true,
         },
         {
-			name:          "invalid JIRA key",
-			input:         "abx-1234",
-			branchPattern: branchPattern,
-			wantErr:       true,
-		},
+            name:          "invalid JIRA key",
+            input:         "abx-1234",
+            wantErr:       true,
+        },
     }
 
-    jira := &internal.JiraManager{Config: &internal.Config{}}
+    config := &internal.Config{BranchPattern: `[A-Z]+-\d+`}
+    jira := internal.NewJiraManager(config)
 
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
