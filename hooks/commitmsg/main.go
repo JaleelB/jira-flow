@@ -17,23 +17,23 @@ func main() {
 
     commitMsgFilePath := os.Args[1]
 
-    // Extract the current branch name
+    // Extract JIRA issue key from branch name
     branchName, err := internal.GetCurrentBranchName()
     if err != nil {
-        fmt.Printf("Error getting current branch name: %v\n", err)
-        os.Exit(1)
+        fmt.Fprintf(os.Stderr, "Error getting branch name: %v\n", err)
+        os.Exit(0) // Continue with commit without modification
     }
 
-    issueKeyPattern := regexp.MustCompile(`[A-Z]+-\d+`)
-
-    // Attempt to find an issue key in the branch name
-    matches := issueKeyPattern.FindStringSubmatch(branchName)
-    if len(matches) == 0 {
-        fmt.Println("No JIRA issue key found in branch name. Skipping.")
-        os.Exit(0) // Exit successfully without modifying the commit message
+    issueKey, err := extractIssueKeyFromBranchName(branchName)
+    if err != nil {
+        // Just continue with commit if we can't extract a key
+        os.Exit(0)
     }
 
-    issueKey := matches[0]
+    // If no issue key found (empty string), just continue with commit
+    if issueKey == "" {
+        os.Exit(0)
+    }
 
     // Prepend the issue key to the commit message
     if err := prependIssueKeyToCommitMsg(commitMsgFilePath, issueKey); err != nil {
@@ -82,4 +82,17 @@ func prependIssueKeyToCommitMsg(filePath, issueKey string) error {
     }
 
     return nil
+}
+
+func extractIssueKeyFromBranchName(branchName string) (string, error) {
+	issueKeyPattern := regexp.MustCompile(`[A-Z]+-\d+`)
+
+	// Attempt to find an issue key in the branch name
+	matches := issueKeyPattern.FindStringSubmatch(branchName)
+	if len(matches) == 0 {
+		fmt.Println("No JIRA issue key found in branch name. Skipping.")
+		return "", nil
+	}
+
+	return matches[0], nil
 }
