@@ -70,17 +70,11 @@ func configureJiraFlow(jiraManager *JiraManager) {
 
 	switch selectedOption.Name {
 		case "Automatically":
-			jiraManager.Config.AutoLink = true
-
-			branchName, _ := GetCurrentBranchName()
-			issueKey, err := jiraManager.ExtractIssueKeyFromBranchName(branchName)
-
+			err := jiraManager.ConfigureAutomatic()
 			if err != nil {
-				fmt.Printf("\nFailed to extract JIRA issue key from branch name: %v\n", err)
+				fmt.Printf("\nFailed to configure automatic JIRA key extraction: %v\n", err)
 				return
 			}
-
-			jiraManager.Config.JiraKey = issueKey
 
 			checkDirErr := CheckGitAndHooksDir()
 			if checkDirErr != nil {
@@ -94,8 +88,20 @@ func configureJiraFlow(jiraManager *JiraManager) {
 				return
 			}
 
-			msg := fmt.Sprintf("\nSuccess! The issue key %q will now be prepended to your commits linking them to your JIRA issue.", issueKey)
-			fmt.Printf("%s", aurora.BrightMagenta(msg))			
+			branchName, _ := GetCurrentBranchName()
+			if branchName == "main" || branchName == "master" {
+				msg := "\nSuccess! JiraFlow is now configured. JIRA issue keys will be automatically extracted from branch names when you switch to feature branches."
+				fmt.Printf("%s", aurora.BrightMagenta(msg))
+			} else {
+				issueKey, _ := jiraManager.ExtractIssueKeyFromBranchName(branchName)
+				if issueKey != "" {
+					msg := fmt.Sprintf("\nSuccess! The issue key %q will now be prepended to your commits linking them to your JIRA issue.", issueKey)
+					fmt.Printf("%s", aurora.BrightMagenta(msg))
+				} else {
+					msg := "\nSuccess! JiraFlow is now configured. JIRA issue keys will be automatically extracted from branch names when available."
+					fmt.Printf("%s", aurora.BrightMagenta(msg))
+				}
+			}
 			
 		case "Manually":
 
