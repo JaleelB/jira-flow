@@ -8,9 +8,15 @@ import (
 	"github.com/logrusorgru/aurora"
 )
 
+// GetHooksPath returns the path to the git hooks directory
+// This can be overridden in tests
+var GetHooksPath = func() string {
+	return ".git/hooks"
+}
+
 func CheckStatus(config *Config) {
 	// Check for git hooks
-	hooksPath := ".git/hooks"
+	hooksPath := GetHooksPath()
 	commitMsgHook := filepath.Join(hooksPath, "commit-msg")
 	postCheckoutHook := filepath.Join(hooksPath, "post-checkout")
 
@@ -38,7 +44,7 @@ func isHookPresent(hookPath string) bool {
 
 func ToggleJiraFlow(config *Config, enable bool) error {
 	if enable {
-		// Reuse existing hook installation logic
+		// Use the mockable InstallHooks function
 		if err := InstallHooks(config); err != nil {
 			return fmt.Errorf("failed to enable JiraFlow: %w", err)
 		}
@@ -53,7 +59,7 @@ func ToggleJiraFlow(config *Config, enable bool) error {
 }
 
 func RemoveHooks(config *Config) error {
-	hooksPath := ".git/hooks"
+	hooksPath := GetHooksPath()
 	hooks := []string{"commit-msg", "post-checkout"}
 
 	for _, hook := range hooks {
@@ -65,8 +71,9 @@ func RemoveHooks(config *Config) error {
 	return nil
 }
 
-func InstallHooks(config *Config) error {
-	hooksPath := ".git/hooks"
+// Make InstallHooks mockable for testing
+var InstallHooks = func(config *Config) error {
+	hooksPath := GetHooksPath()
 	hooks := map[string]string{
 		"commit-msg": getBinaryPath(config, "commitmsg"),
 		"post-checkout": getBinaryPath(config, "postco"),
@@ -82,7 +89,7 @@ func InstallHooks(config *Config) error {
 }
 
 func IsJiraFlowActive() bool {
-	hooksPath := ".git/hooks"
+	hooksPath := GetHooksPath()
 	return isHookPresent(filepath.Join(hooksPath, "commit-msg")) && 
 		   isHookPresent(filepath.Join(hooksPath, "post-checkout"))
 } 
