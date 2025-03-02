@@ -10,6 +10,31 @@ Jira-Flow is a CLI tool designed to link git commits with JIRA issues.
 npm install -g jira-flow
 ```
 
+#### Quick Install Script (Linux/macOS)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/JaleelB/jira-flow/main/installScripts/unix/install.sh | bash
+```
+
+#### Windows PowerShell
+
+```powershell
+iwr -useb https://raw.githubusercontent.com/JaleelB/jira-flow/main/installScripts/windows/install.ps1 | iex
+```
+
+#### Homebrew (macOS)
+
+```bash
+brew tap jaleelb/jira-flow
+brew install jira-flow
+```
+
+#### Docker
+
+```bash
+docker run --rm -it -v $(pwd):/git -w /git jaleelb/jira-flow init
+```
+
 #### From Source
 
 To install Jira-Flow from source, including all associated binaries (`jiraflow`, `commitmsg`, `postco`), follow these steps:
@@ -24,15 +49,15 @@ To install Jira-Flow from source, including all associated binaries (`jiraflow`,
 2. Build the project (assuming Go is installed):
 
    ```bash
-   go build -o jiraflow ./cmd/jiraflow/main.go
+   go build -o jira-flow ./cmd/app/main.go
    go build -o commitmsg ./hooks/commitmsg/main.go
-   go build -o postco ./hooks/postco/main.go
+   go build -o postco ./hooks/post_checkout/main.go
    ```
 
 3. Optionally, install the binary to a location in your PATH:
 
    ```bash
-   sudo mv jiraflow /usr/local/bin
+   sudo mv jira-flow /usr/local/bin
    sudo mv commitmsg /usr/local/bin
    sudo mv postco /usr/local/bin
    ```
@@ -116,8 +141,9 @@ Here's a quick example of initializing Jira-Flow and configuring it to automatic
 $ jira-flow init
 # Welcome message and logo displayed
 ? How would you like to proceed:
-  ▸ Configure Jira-Flow
-    Remove Jira-Flow
+  ▸ Configure Jira-Flow for this repository
+    Check Jira-Flow status in this repository
+    Remove Jira-Flow from this repository
     Exit Jira-Flow
 
 # User selects 'Configure Jira-Flow'
