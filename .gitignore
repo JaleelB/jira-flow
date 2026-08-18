@@ -1,28 +1,27 @@
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-*.test
+# Dependencies
+node_modules/
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
+# Build output
+dist/
 
-# Project-specific
-bin/
-pkg/
-vendor/
+# Local databases
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Bun
+.bun/
 
 # Editor files
 .idea/
 *.swp
 *.swo
-*.vscode
-
-# Log files
-node_modules/
+.vscode
 
 # OS-specific files
 .DS_Store
 Thumbs.db
+
+# Coverage
+coverage/
