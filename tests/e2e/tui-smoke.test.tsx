@@ -1,6 +1,6 @@
-import { act } from "react";
 import { afterEach, describe, expect, test } from "bun:test";
 import { testRender } from "@opentui/react/test-utils";
+import { act } from "react";
 import { SmokeScreen } from "../../src/tui/screens/smoke";
 
 /**
