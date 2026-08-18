@@ -29,11 +29,16 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "commander": "^15.0.0"
+    "@opentui/core": "0.5.4",
+    "@opentui/keymap": "0.5.4",
+    "@opentui/react": "0.5.4",
+    "commander": "^15.0.0",
+    "react": "19.2.8"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.9",
     "@types/bun": "^1.3.14",
+    "@types/react": "19",
     "typescript": "^7.0.2"
   }
 }

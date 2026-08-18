@@ -16,6 +16,16 @@ import type { JiraFlowError } from "./domain/errors";
  * Exit codes follow architecture §37.
  */
 async function main(): Promise<number> {
+  const argv = process.argv.slice(2);
+
+  // Development-only smoke TUI until the real startup router exists (T-19).
+  // The TUI module is dynamically imported so headless paths never load it.
+  if (argv.length === 0 && process.env.JIRAFLOW_TUI_SMOKE === "1") {
+    const { runSmokeTui } = await import("./tui/run-tui");
+    await runSmokeTui();
+    return 0;
+  }
+
   const program = buildProgram();
   await program.parseAsync(process.argv);
   return 0;
