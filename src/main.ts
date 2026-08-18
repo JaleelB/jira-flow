@@ -18,6 +18,18 @@ import type { JiraFlowError } from "./domain/errors";
 async function main(): Promise<number> {
   const argv = process.argv.slice(2);
 
+  // The internal hook command gets its own composition root that excludes
+  // SQLite and OpenTUI (ADR-0002/O-02, ADR-0004/O-03). It must stay
+  // import-light for commit latency.
+  if (argv[0] === "hook") {
+    const { createHookContainer } = await import("./bootstrap/hook-container");
+    const { registerHookCommand } = await import("./cli/commands/hook");
+    const program = buildProgram();
+    registerHookCommand(program, createHookContainer());
+    await program.parseAsync(process.argv);
+    return 0;
+  }
+
   // Development-only smoke TUI until the real startup router exists (T-19).
   // The TUI module is dynamically imported so headless paths never load it.
   if (argv.length === 0 && process.env.JIRAFLOW_TUI_SMOKE === "1") {
