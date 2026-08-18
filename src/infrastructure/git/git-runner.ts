@@ -31,12 +31,21 @@ export interface RunGitRequest {
 
 export class GitRunner {
   private readonly gitExecutable: string;
+  private readonly defaultEnv: Record<string, string | undefined> | undefined;
 
-  constructor(gitExecutable = "git") {
-    this.gitExecutable = gitExecutable;
+  constructor(
+    options: {
+      executable?: string;
+      /** Default environment for all commands (tests inject isolated configs). */
+      env?: Record<string, string | undefined>;
+    } = {},
+  ) {
+    this.gitExecutable = options.executable ?? "git";
+    this.defaultEnv = options.env;
   }
 
   async run(request: RunGitRequest): Promise<GitCommandResult> {
+    const env = request.env ?? this.defaultEnv ?? process.env;
     let proc;
     try {
       proc = Bun.spawn([this.gitExecutable, ...request.args], {
@@ -44,7 +53,7 @@ export class GitRunner {
         stdin: request.stdin === undefined ? "ignore" : "pipe",
         stdout: "pipe",
         stderr: "pipe",
-        env: request.env ?? process.env,
+        env,
       });
     } catch (error) {
       throw new GitUnavailableError(error instanceof Error ? error.message : String(error));
