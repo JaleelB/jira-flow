@@ -93,7 +93,7 @@ describe("compiled vertical slice (VT-11, VT-12)", () => {
     expect(doctor.stdout).toContain("Doctor: healthy");
     expect(doctor.stdout).toContain("[ok] git.repository");
     expect(doctor.stdout).toContain("[ok] config.valid");
-    expect(doctor.stdout).toContain("[ok] hooks.present");
+    expect(doctor.stdout).toContain("[ok] hooks.integration");
     expect(doctor.stdout).toContain("[ok] hooks.ownership");
     expect(doctor.stdout).toContain("[ok] issue.pattern");
     expect(doctor.stdout).toContain("[ok] active-issue.resolve");

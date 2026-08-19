@@ -43,9 +43,12 @@ export function formatInitializeResult(
       ? `Initialized JiraFlow for ${result.repoPath}`
       : `JiraFlow is already configured for ${result.repoPath}`;
 
-  const hook = result.hook.created
-    ? `Installed owned commit-msg integration: ${result.hook.hookPath}`
-    : `Owned commit-msg integration verified: ${result.hook.hookPath}`;
+  const hook =
+    result.hook.strategy === "composed"
+      ? `Composed commit-msg integration: ${result.hook.hookPath}`
+      : result.hook.created
+        ? `Installed owned commit-msg integration: ${result.hook.hookPath}`
+        : `Owned commit-msg integration verified: ${result.hook.hookPath}`;
 
   const lines = [ansi.ok(ansi.bold(title)), hook];
   if (result.registryWarning !== undefined) {
@@ -76,6 +79,18 @@ export function formatDoctorResult(result: DoctorResult, ansi: Ansi = createAnsi
           : ansi.fail("[fail]");
     const detail = check.detail !== undefined ? ansi.mute(`: ${check.detail}`) : "";
     lines.push(`${marker} ${check.id}${detail}`);
+  }
+
+  const nextActions = result.checks
+    .filter((check) => check.status === "fail" && check.repairHint !== undefined)
+    .map((check) => check.repairHint)
+    .filter((hint, index, all) => all.indexOf(hint) === index);
+  if (nextActions.length > 0) {
+    lines.push("");
+    lines.push(ansi.bold("Next"));
+    for (const action of nextActions) {
+      lines.push(action ?? "");
+    }
   }
   return rail(ansi, lines);
 }

@@ -841,13 +841,13 @@ No blockers. Assumptions are recorded.
 
 ## To-Dos
 
-- [ ] Phase 1 T-01–T-05
-- [ ] Phase 2 T-06–T-13 (review before merge)
-- [ ] Phase 3 T-14–T-16
-- [ ] Phase 4 T-17–T-19
-- [ ] Phase 5 T-20–T-27
-- [ ] Phase 6 T-28 M2 gate
-- [ ] Confirm VT-VS1 still passes
+- [x] Phase 1 T-01–T-05
+- [x] Phase 2 T-06–T-13 (review before merge)
+- [x] Phase 3 T-14–T-16
+- [x] Phase 4 T-17–T-19
+- [x] Phase 5 T-20–T-27
+- [x] Phase 6 T-28 M2 gate
+- [x] Confirm VT-VS1 still passes
 
 ---
 

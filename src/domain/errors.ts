@@ -166,6 +166,60 @@ export class WorktreeStateInvalidError extends JiraFlowError {
   }
 }
 
+/** Branch mode does not accept `link`. */
+export class LinkUnavailableInBranchModeError extends JiraFlowError {
+  readonly code = "LINK_UNAVAILABLE_IN_BRANCH_MODE";
+  readonly exitCode = 2;
+
+  constructor() {
+    super(
+      "Issue linking is unavailable in Branch mode.\n\nSwitch to Hybrid or Manual:\n\n  jira-flow mode hybrid\n  jira-flow mode manual",
+    );
+  }
+}
+
+/** Interactive `init` is not available in M2. */
+export class InteractiveSetupDeferredError extends JiraFlowError {
+  readonly code = "INTERACTIVE_SETUP_DEFERRED";
+  readonly exitCode = 2;
+
+  constructor() {
+    super(
+      "Interactive setup is not available yet. Initialize with `jira-flow init --yes` to accept safe defaults.",
+    );
+  }
+}
+
+/** A destructive command needs `--yes` when stdin is not a TTY. */
+export class ConfirmationRequiredError extends JiraFlowError {
+  readonly code = "CONFIRMATION_REQUIRED";
+  readonly exitCode = 2;
+
+  constructor(command: string) {
+    super(`Refusing to run \`${command}\` without --yes (no interactive confirmation in M2).`);
+  }
+}
+
+/** `config` key is not in the constrained schema. */
+export class UnknownConfigKeyError extends JiraFlowError {
+  readonly code = "UNKNOWN_CONFIG_KEY";
+  readonly exitCode = 2;
+
+  constructor(key: string) {
+    super(`Unknown configuration key: ${key}`);
+  }
+}
+
+/** Global config is deferred to M3. */
+export class GlobalConfigUnavailableError extends JiraFlowError {
+  readonly code = "GLOBAL_CONFIG_UNAVAILABLE";
+  readonly exitCode = 2;
+
+  constructor() {
+    super("Global configuration is not available yet (SQLite settings are M3).");
+  }
+}
+
 /** A filesystem operation failed. */
 export class FileSystemError extends JiraFlowError {
   readonly code = "FILESYSTEM_ERROR";

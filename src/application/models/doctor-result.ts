@@ -10,6 +10,7 @@ export interface DoctorCheckResult {
   id: string;
   status: DoctorCheckStatus;
   detail?: string;
+  repairHint?: string;
 }
 
 export type DoctorOverall = "healthy" | "warning" | "broken";

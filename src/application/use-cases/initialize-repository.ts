@@ -1,4 +1,5 @@
-import { HookConflictError } from "../../domain/errors";
+import { HookConflictError, HookUnsafeToModifyError } from "../../domain/errors";
+import type { LinkingMode } from "../../domain/linking-mode";
 import type { GitPort, GitRepositoryContext } from "../ports/git.port";
 import type { HookInstallResult, HookManagerPort } from "../ports/hooks.port";
 import type { RegistryPort } from "../ports/registry.port";
@@ -40,6 +41,8 @@ export interface IntegrationMetadataWriter {
     input: {
       hookPath: string;
       capturedBinaryPath: string | null;
+      strategy?: "owned" | "composed";
+      backupPath?: string;
     },
   ): Promise<unknown>;
   remove(repo: GitRepositoryContext): Promise<void>;
@@ -59,6 +62,9 @@ export interface InitializeRepositoryDeps {
 
 export interface InitializeRepositoryInput {
   path: string;
+  mode?: LinkingMode;
+  composeExistingHook?: boolean;
+  allowSharedHooks?: boolean;
 }
 
 export interface InitializeRepositoryResult {
@@ -82,8 +88,24 @@ export class InitializeRepository {
     // 1. Inspect the hook BEFORE any mutation: a conflict must leave the
     //    repository completely untouched.
     const inspection = await this.deps.hooks.inspect(repo);
-    if (inspection.status === "conflict") {
+    if (
+      inspection.status === "conflict" ||
+      inspection.status === "unsupported" ||
+      inspection.status === "malformed-jiraflow" ||
+      inspection.status === "permission-denied"
+    ) {
+      throw inspection.status === "conflict"
+        ? new HookConflictError(inspection.hookPath)
+        : new HookUnsafeToModifyError(inspection.hookPath, inspection.reason ?? inspection.status);
+    }
+    if (inspection.status === "composable-shell" && input.composeExistingHook !== true) {
       throw new HookConflictError(inspection.hookPath);
+    }
+    if (inspection.status === "shared-external" && input.allowSharedHooks !== true) {
+      throw new HookUnsafeToModifyError(
+        inspection.hookPath,
+        inspection.reason ?? "shared/external hooksPath requires --allow-shared-hooks",
+      );
     }
 
     const existingConfig = await this.deps.config.read(repo);
@@ -96,10 +118,12 @@ export class InitializeRepository {
     let hookCreated = false;
     let metadataWritten = false;
 
+    let hookComposed = false;
+
     try {
       if (!alreadyConfigured) {
         await this.deps.config.setEnabled(repo, true);
-        await this.deps.config.setMode(repo, "hybrid");
+        await this.deps.config.setMode(repo, input.mode ?? "hybrid");
         await this.deps.config.setCommitFormat(repo, "footer");
         configWritten = true;
       }
@@ -109,14 +133,19 @@ export class InitializeRepository {
         stateWritten = true;
       }
 
-      const hook = await this.deps.hooks.installOwned(repo, {
+      const hook = await this.deps.hooks.install(repo, {
         binaryPath: this.deps.captureBinaryPath(),
+        composeExistingHook: input.composeExistingHook === true,
+        allowSharedHooks: input.allowSharedHooks === true,
       });
       hookCreated = hook.created;
+      hookComposed = hook.strategy === "composed" && hook.backupPath !== undefined;
 
       await this.deps.metadata.write(repo, {
         hookPath: hook.hookPath,
         capturedBinaryPath: this.deps.captureBinaryPath(),
+        strategy: hook.strategy,
+        backupPath: hook.backupPath,
       });
       metadataWritten = true;
 
@@ -160,6 +189,7 @@ export class InitializeRepository {
         configWritten,
         stateWritten,
         hookCreated,
+        hookComposed,
         metadataWritten,
       });
       throw error;
@@ -177,6 +207,7 @@ export class InitializeRepository {
       configWritten: boolean;
       stateWritten: boolean;
       hookCreated: boolean;
+      hookComposed: boolean;
       metadataWritten: boolean;
     },
   ): Promise<void> {
@@ -213,6 +244,14 @@ export class InitializeRepository {
         });
       } catch {
         failures.push("owned hook could not be rolled back");
+      }
+    } else if (ledger.hookComposed) {
+      try {
+        await this.deps.hooks.remove(repo, {
+          binaryPath: this.deps.captureBinaryPath(),
+        });
+      } catch {
+        failures.push("composed hook could not be rolled back");
       }
     }
 

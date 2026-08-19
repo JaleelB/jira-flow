@@ -198,6 +198,27 @@ class FakeRegistry implements RegistryPort {
       updatedAt: 0,
     };
   }
+
+  async findByPath(path: string) {
+    const row = this.registrations.find((entry) => entry.path === path);
+    if (row === undefined) {
+      return null;
+    }
+    return {
+      id: "uuid-1",
+      path: row.path,
+      displayName: row.displayName,
+      remoteUrl: row.remoteUrl,
+      createdAt: 0,
+      updatedAt: 0,
+    };
+  }
+
+  async unregister(path: string) {
+    const before = this.registrations.length;
+    this.registrations = this.registrations.filter((entry) => entry.path !== path);
+    return this.registrations.length < before;
+  }
 }
 
 const fakeGit: GitPort = {

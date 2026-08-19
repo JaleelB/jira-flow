@@ -23,9 +23,7 @@ export interface RegisterRepositoryInput {
 }
 
 export interface RegistryPort {
-  /**
-   * Registers (or refreshes) a repository in the global registry.
-   * Implementations must tolerate re-registration of a known path.
-   */
   register(input: RegisterRepositoryInput): Promise<RegisteredRepository>;
+  findByPath(path: string): Promise<RegisteredRepository | null>;
+  unregister(path: string): Promise<boolean>;
 }

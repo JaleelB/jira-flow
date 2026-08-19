@@ -1,8 +1,15 @@
 import type { RegistryPort } from "../application/ports/registry.port";
 import { GetRepositoryStatus } from "../application/use-cases/get-repository-status";
 import { InitializeRepository } from "../application/use-cases/initialize-repository";
+import { LinkIssue } from "../application/use-cases/link-issue";
+import { ManageConfig } from "../application/use-cases/manage-config";
 import { ProcessCommitMessage } from "../application/use-cases/process-commit-message";
+import { RemoveRepository } from "../application/use-cases/remove-repository";
+import { RepairRepository } from "../application/use-cases/repair-repository";
 import { RunDoctor } from "../application/use-cases/run-doctor";
+import { SetEnabled } from "../application/use-cases/set-enabled";
+import { SetMode } from "../application/use-cases/set-mode";
+import { UnlinkIssue } from "../application/use-cases/unlink-issue";
 import { SystemFilesystem } from "../infrastructure/filesystem/system-filesystem";
 import { GitAdapter } from "../infrastructure/git/git-adapter";
 import { GitConfigStore } from "../infrastructure/git/git-config-store";
@@ -33,14 +40,33 @@ class LazyRegistry implements RegistryPort {
     this.inner ??= this.factory();
     return this.inner.register(input);
   }
+
+  async findByPath(path: string) {
+    this.inner ??= this.factory();
+    return this.inner.findByPath(path);
+  }
+
+  async unregister(path: string) {
+    this.inner ??= this.factory();
+    return this.inner.unregister(path);
+  }
 }
 
-export function createCliContainer(options: { registry?: RegistryPort | null } = {}): {
+export interface CliContainer {
   initializeRepository: InitializeRepository;
   getRepositoryStatus: GetRepositoryStatus;
   runDoctor: RunDoctor;
+  repairRepository: RepairRepository;
   processCommitMessage: ProcessCommitMessage;
-} {
+  linkIssue: LinkIssue;
+  unlinkIssue: UnlinkIssue;
+  setMode: SetMode;
+  setEnabled: SetEnabled;
+  removeRepository: RemoveRepository;
+  manageConfig: ManageConfig;
+}
+
+export function createCliContainer(options: { registry?: RegistryPort | null } = {}): CliContainer {
   const runner = new GitRunner();
   const git = new GitAdapter(runner);
   const config = new GitConfigStore(runner);
@@ -69,8 +95,50 @@ export function createCliContainer(options: { registry?: RegistryPort | null } =
   });
 
   const getRepositoryStatus = new GetRepositoryStatus({ git, config, state, hooks });
-  const runDoctor = new RunDoctor({ git, config, state, hooks });
+  const runDoctor = new RunDoctor({
+    git,
+    config,
+    state,
+    hooks,
+    registry,
+    captureBinaryPath,
+  });
+  const repairRepository = new RepairRepository({
+    git,
+    config,
+    state,
+    hooks,
+    metadata,
+    registry,
+    captureBinaryPath,
+  });
   const processCommitMessage = new ProcessCommitMessage({ git, config, state, filesystem });
+  const linkIssue = new LinkIssue({ git, config, state });
+  const unlinkIssue = new UnlinkIssue({ git, config, state });
+  const setMode = new SetMode({ git, config });
+  const setEnabled = new SetEnabled({ git, config });
+  const removeRepository = new RemoveRepository({
+    git,
+    config,
+    state,
+    hooks,
+    metadata,
+    registry,
+    captureBinaryPath,
+  });
+  const manageConfig = new ManageConfig({ git, config });
 
-  return { initializeRepository, getRepositoryStatus, runDoctor, processCommitMessage };
+  return {
+    initializeRepository,
+    getRepositoryStatus,
+    runDoctor,
+    repairRepository,
+    processCommitMessage,
+    linkIssue,
+    unlinkIssue,
+    setMode,
+    setEnabled,
+    removeRepository,
+    manageConfig,
+  };
 }

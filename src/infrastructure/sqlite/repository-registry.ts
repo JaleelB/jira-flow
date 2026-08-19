@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import type { RegisteredRepository, RegistryPort } from "../../application/ports/registry.port";
 import { openSqliteDatabase } from "./database";
 import { runMigrations } from "./migrations";
@@ -82,12 +83,26 @@ export class SqliteRepositoryRegistry implements RegistryPort {
 
   /** Looks up a registry row by path; used by later epics. */
   async findByPath(path: string): Promise<RegisteredRepository | null> {
+    if (!existsSync(this.databasePath)) {
+      return null;
+    }
     const db = openSqliteDatabase({ path: this.databasePath });
     try {
       const row = db
         .query<RepositoryRow, [string]>("SELECT * FROM repositories WHERE path = ?")
         .get(path);
       return row === null ? null : toRegistered(row);
+    } finally {
+      db.close();
+    }
+  }
+
+  async unregister(path: string): Promise<boolean> {
+    const db = openSqliteDatabase({ path: this.databasePath });
+    try {
+      runMigrations(db);
+      const result = db.run("DELETE FROM repositories WHERE path = ?", [path]);
+      return result.changes > 0;
     } finally {
       db.close();
     }

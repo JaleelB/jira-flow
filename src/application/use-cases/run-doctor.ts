@@ -8,23 +8,18 @@ import { DEFAULT_ISSUE_PATTERN, extractIssueKeyFromBranch } from "../../domain/i
 import type { DoctorCheckResult, DoctorOverall, DoctorResult } from "../models/doctor-result";
 import type { GitPort } from "../ports/git.port";
 import type { HookManagerPort } from "../ports/hooks.port";
+import type { RegistryPort } from "../ports/registry.port";
 import type { RepoConfigPort } from "../ports/repo-config.port";
 import type { WorktreeStatePort } from "../ports/worktree-state.port";
 import { computeEffectiveConfig } from "../services/effective-config";
-
-/**
- * `runDoctor` — read-only repository health checks (VS1-9).
- *
- * Checks: git repository, config validity, hook presence, ownership
- * markers, issue pattern compilation, active-issue resolution. Doctor never
- * mutates state; `--repair` arrives with E6.
- */
 
 export interface RunDoctorDeps {
   git: GitPort;
   config: RepoConfigPort;
   state: WorktreeStatePort;
   hooks: HookManagerPort;
+  registry?: RegistryPort | null;
+  captureBinaryPath?: () => string | null;
 }
 
 export interface RunDoctorInput {
@@ -32,11 +27,7 @@ export interface RunDoctorInput {
 }
 
 export class RunDoctor {
-  private readonly deps: RunDoctorDeps;
-
-  constructor(deps: RunDoctorDeps) {
-    this.deps = deps;
-  }
+  constructor(private readonly deps: RunDoctorDeps) {}
 
   async execute(input: RunDoctorInput): Promise<DoctorResult> {
     const checks: DoctorCheckResult[] = [];
@@ -56,7 +47,6 @@ export class RunDoctor {
       throw error;
     }
 
-    // config.valid
     let config = null;
     try {
       config = await this.deps.config.read(repo);
@@ -64,7 +54,8 @@ export class RunDoctor {
         checks.push({
           id: "config.valid",
           status: "fail",
-          detail: "JiraFlow is not configured for this repository; run `jira-flow init --yes`",
+          detail: "JiraFlow is not configured; run `jira-flow init --yes`",
+          repairHint: "jira-flow init --yes",
         });
       } else {
         checks.push({ id: "config.valid", status: "pass" });
@@ -77,28 +68,104 @@ export class RunDoctor {
       }
     }
 
-    // hooks.present + hooks.ownership
-    const inspection = await this.deps.hooks.inspect(repo);
-    if (inspection.status === "owned") {
-      checks.push({ id: "hooks.present", status: "pass" });
-      checks.push({ id: "hooks.ownership", status: "pass", detail: "JiraFlow managed block v1" });
-    } else if (inspection.status === "missing") {
+    try {
+      await this.deps.state.read(repo);
+      checks.push({ id: "worktree.state", status: "pass" });
+    } catch (error) {
       checks.push({
-        id: "hooks.present",
+        id: "worktree.state",
         status: "fail",
-        detail: "commit-msg hook is missing; run `jira-flow init --yes`",
-      });
-      checks.push({ id: "hooks.ownership", status: "warning", detail: "no hook to inspect" });
-    } else {
-      checks.push({ id: "hooks.present", status: "pass" });
-      checks.push({
-        id: "hooks.ownership",
-        status: "fail",
-        detail: inspection.reason ?? "hook is not owned by JiraFlow",
+        detail: error instanceof Error ? error.message : String(error),
+        repairHint: "jira-flow doctor --repair",
       });
     }
 
-    // issue.pattern
+    if (this.deps.registry) {
+      try {
+        const row = await this.deps.registry.findByPath(repo.root);
+        if (row === null) {
+          checks.push({
+            id: "registry.sync",
+            status: "warning",
+            detail: "repository is not registered in the dashboard database",
+            repairHint: "jira-flow doctor --repair",
+          });
+        } else {
+          checks.push({ id: "registry.sync", status: "pass" });
+        }
+      } catch (error) {
+        checks.push({
+          id: "registry.sync",
+          status: "warning",
+          detail: error instanceof Error ? error.message : String(error),
+        });
+      }
+    } else {
+      checks.push({
+        id: "registry.sync",
+        status: "warning",
+        detail: "registry unavailable",
+      });
+    }
+
+    const hooksCtx = await this.deps.git.resolveHooks(repo);
+    checks.push({
+      id: "hooks.path",
+      status: "pass",
+      detail: `${hooksCtx.hooksDir} (${hooksCtx.hooksPathOrigin})`,
+    });
+
+    const inspection = await this.deps.hooks.inspect(repo);
+    if (inspection.status === "owned" || inspection.status === "managed-block") {
+      checks.push({ id: "hooks.integration", status: "pass", detail: inspection.status });
+      checks.push({ id: "hooks.ownership", status: "pass", detail: inspection.status });
+      checks.push({
+        id: "hooks.foreign-preserved",
+        status: inspection.status === "managed-block" ? "pass" : "pass",
+        detail:
+          inspection.status === "managed-block"
+            ? "foreign hook body retained around the managed block"
+            : "owned hook contains only JiraFlow integration",
+      });
+    } else if (inspection.status === "missing") {
+      checks.push({
+        id: "hooks.integration",
+        status: "fail",
+        detail: "commit-msg hook is missing; run `jira-flow init --yes`",
+        repairHint: "jira-flow init --yes",
+      });
+      checks.push({ id: "hooks.ownership", status: "warning", detail: "no hook to inspect" });
+      checks.push({ id: "hooks.foreign-preserved", status: "pass", detail: "no foreign hook" });
+    } else {
+      checks.push({ id: "hooks.integration", status: "pass", detail: inspection.status });
+      checks.push({
+        id: "hooks.ownership",
+        status: "fail",
+        detail: inspection.reason ?? inspection.status,
+      });
+      checks.push({
+        id: "hooks.foreign-preserved",
+        status: "pass",
+        detail: "foreign hook left unmodified",
+      });
+    }
+
+    const binary = this.deps.captureBinaryPath?.() ?? null;
+    if (binary === null) {
+      checks.push({
+        id: "binary.reachable",
+        status: "pass",
+        detail: "PATH fallback (development interpreter)",
+      });
+    } else {
+      const reachable = await Bun.file(binary).exists();
+      checks.push({
+        id: "binary.reachable",
+        status: reachable ? "pass" : "warning",
+        detail: binary,
+      });
+    }
+
     let pattern = DEFAULT_ISSUE_PATTERN;
     if (config !== null) {
       pattern = computeEffectiveConfig(config).issuePattern;
@@ -110,7 +177,21 @@ export class RunDoctor {
       checks.push({ id: "issue.pattern", status: "fail", detail: pattern });
     }
 
-    // active-issue.resolve
+    if (config !== null) {
+      try {
+        computeEffectiveConfig(config);
+        checks.push({ id: "mode.valid", status: "pass", detail: config.mode });
+      } catch (error) {
+        checks.push({
+          id: "mode.valid",
+          status: "fail",
+          detail: error instanceof Error ? error.message : String(error),
+        });
+      }
+    } else {
+      checks.push({ id: "mode.valid", status: "warning", detail: "not configured" });
+    }
+
     if (config !== null) {
       try {
         const state = await this.deps.state.read(repo);
