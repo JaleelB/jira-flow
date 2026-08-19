@@ -47,7 +47,7 @@ export type CommitProcessingOutcome =
   | "empty-message"
   | "unreadable-state"
   | "invalid-pattern"
-  | "unsupported-format";
+  | "unsafe-scope";
 
 export interface ProcessCommitMessageResult {
   outcome: CommitProcessingOutcome;
@@ -102,12 +102,6 @@ export class ProcessCommitMessage {
       throw error;
     }
 
-    if (effective.commitFormat !== "footer") {
-      // Only the footer format exists in VS-1 (DR-0013). Never guess a
-      // different mutation.
-      return { outcome: "unsupported-format" };
-    }
-
     const branch = await this.deps.git.getCurrentBranch(repo);
     const branchIssue = extractIssueKeyFromBranch(branch, effective.issuePattern);
     const activeIssue = resolveActiveIssue({
@@ -125,13 +119,17 @@ export class ProcessCommitMessage {
     const mutation = applyIssueReference({
       message,
       issue: activeIssue.key,
-      format: "footer",
+      format: effective.commitFormat,
     });
 
     if (!mutation.changed) {
-      return {
-        outcome: mutation.reason === "already-present" ? "already-present" : "empty-message",
-      };
+      if (mutation.reason === "already-present") {
+        return { outcome: "already-present" };
+      }
+      if (mutation.reason === "unsafe-scope") {
+        return { outcome: "unsafe-scope" };
+      }
+      return { outcome: "empty-message" };
     }
 
     // Preserve trailing-newline semantics: the domain mutation carries no

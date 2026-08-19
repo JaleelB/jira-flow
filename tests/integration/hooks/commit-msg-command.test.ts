@@ -136,6 +136,40 @@ describe("jira-flow hook commit-msg through a real git commit", () => {
     const message = await repo.runOk(["log", "-1", "--pretty=%B"]);
     expect(message.split("Jira: ABC-123").length - 1).toBe(1);
   });
+
+  test("suffix, prefix, and scope formats mutate through git commit", async () => {
+    const repo = await setupConfiguredRepo();
+    const runner = new GitRunner({ env: repo.env });
+    const adapter = new GitAdapter(runner);
+    const context = await adapter.discoverRepository(repo.root);
+    const config = new GitConfigStore(runner);
+
+    await config.setCommitFormat(context, "suffix");
+    await repo.runOk(["switch", "-c", "feat/ABC-123-login"]);
+    await repo.commit("feat: suffix case");
+    expect(await repo.runOk(["log", "-1", "--pretty=%s"])).toContain("[ABC-123]");
+
+    await config.setCommitFormat(context, "prefix");
+    await repo.commit("feat: prefix case");
+    expect((await repo.runOk(["log", "-1", "--pretty=%s"])).trim()).toMatch(/^ABC-123 /);
+
+    await config.setCommitFormat(context, "scope");
+    await repo.commit("feat: scope case");
+    expect((await repo.runOk(["log", "-1", "--pretty=%s"])).trim()).toBe(
+      "feat(ABC-123): scope case",
+    );
+  });
+
+  test("scope format leaves a non-empty existing scope unchanged", async () => {
+    const repo = await setupConfiguredRepo();
+    const runner = new GitRunner({ env: repo.env });
+    const adapter = new GitAdapter(runner);
+    const context = await adapter.discoverRepository(repo.root);
+    await new GitConfigStore(runner).setCommitFormat(context, "scope");
+    await repo.runOk(["switch", "-c", "feat/ABC-123-login"]);
+    await repo.commit("feat(auth): keep scope");
+    expect((await repo.runOk(["log", "-1", "--pretty=%s"])).trim()).toBe("feat(auth): keep scope");
+  });
 });
 
 describe("hook command silence", () => {
