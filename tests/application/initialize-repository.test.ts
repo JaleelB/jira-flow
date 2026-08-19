@@ -50,6 +50,8 @@ class FakeConfig implements RepoConfigPort {
       mode: (this.store.get("mode") as RepoWorkflowConfig["mode"]) ?? "hybrid",
       issuePattern: this.store.get("issuePattern") ?? null,
       commitFormat: (this.store.get("commitFormat") as RepoWorkflowConfig["commitFormat"]) ?? null,
+      prTitleTemplate: this.store.get("prTitleTemplate") ?? null,
+      dateFormat: this.store.get("dateFormat") ?? null,
     };
   }
 
@@ -69,6 +71,25 @@ class FakeConfig implements RepoConfigPort {
   ): Promise<void> {
     this.writes.push(`commitFormat=${format}`);
     this.store.set("commitFormat", format);
+  }
+
+  async setIssuePattern(_repo: unknown, pattern: string | null): Promise<void> {
+    if (pattern === null) this.store.delete("issuePattern");
+    else this.store.set("issuePattern", pattern);
+  }
+
+  async setPrTitleTemplate(_repo: unknown, value: string | null): Promise<void> {
+    if (value === null) this.store.delete("prTitleTemplate");
+    else this.store.set("prTitleTemplate", value);
+  }
+
+  async setDateFormat(_repo: unknown, value: string | null): Promise<void> {
+    if (value === null) this.store.delete("dateFormat");
+    else this.store.set("dateFormat", value);
+  }
+
+  async unset(_repo: unknown, key: string): Promise<void> {
+    this.store.delete(key.replace(/^jiraflow\./, ""));
   }
 
   async removeAll(): Promise<void> {

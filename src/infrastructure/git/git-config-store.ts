@@ -1,6 +1,6 @@
 import type { GitRepositoryContext } from "../../application/ports/git.port";
 import type { RepoConfigPort, RepoWorkflowConfig } from "../../application/ports/repo-config.port";
-import type { CommitFormat } from "../../domain/commit-format";
+import { type CommitFormat, isCommitFormat } from "../../domain/commit-format";
 import { ConfigInvalidError } from "../../domain/errors";
 import { isLinkingMode, type LinkingMode } from "../../domain/linking-mode";
 import type { GitRunner } from "./git-runner";
@@ -15,10 +15,6 @@ import type { GitRunner } from "./git-runner";
 
 const SECTION_PREFIX = "jiraflow.";
 
-function isCommitFormat(value: string): value is CommitFormat {
-  return value === "footer" || value === "suffix" || value === "prefix" || value === "scope";
-}
-
 export class GitConfigStore implements RepoConfigPort {
   private readonly runner: GitRunner;
 
@@ -27,7 +23,6 @@ export class GitConfigStore implements RepoConfigPort {
   }
 
   async read(repo: GitRepositoryContext): Promise<RepoWorkflowConfig | null> {
-    // Booleans are read through Git's own type conversion (architecture §10).
     const enabled = await this.runner.run({
       cwd: repo.root,
       args: ["config", "--local", "--type=bool", "--get", "jiraflow.enabled"],
@@ -54,22 +49,18 @@ export class GitConfigStore implements RepoConfigPort {
         const key = trimmed.slice(0, separator);
         const value = trimmed.slice(separator + 1);
         if (key.startsWith(SECTION_PREFIX)) {
-          // Git normalizes config keys case-insensitively; `--get-regexp`
-          // prints lowercase keys (e.g. `jiraflow.commitformat`).
           overrides.set(key.slice(SECTION_PREFIX.length).toLowerCase(), value);
         }
       }
     }
 
-    const mode = this.parseMode(overrides.get("mode"));
-    const commitFormat = this.parseFormat(overrides.get("commitformat"));
-    const issuePattern = overrides.get("issuepattern");
-
     return {
       enabled: enabledValue,
-      mode,
-      issuePattern: issuePattern === undefined ? null : issuePattern,
-      commitFormat,
+      mode: this.parseMode(overrides.get("mode")),
+      issuePattern: optionalString(overrides.get("issuepattern")),
+      commitFormat: this.parseFormat(overrides.get("commitformat")),
+      prTitleTemplate: optionalString(overrides.get("prtitletemplate")),
+      dateFormat: optionalString(overrides.get("dateformat")),
     };
   }
 
@@ -87,8 +78,40 @@ export class GitConfigStore implements RepoConfigPort {
     await this.runOk(repo, ["config", "--local", "jiraflow.mode", mode]);
   }
 
-  async setCommitFormat(repo: GitRepositoryContext, format: CommitFormat): Promise<void> {
+  async setCommitFormat(repo: GitRepositoryContext, format: CommitFormat | null): Promise<void> {
+    if (format === null) {
+      await this.unsetKey(repo, "jiraflow.commitFormat");
+      return;
+    }
     await this.runOk(repo, ["config", "--local", "jiraflow.commitFormat", format]);
+  }
+
+  async setIssuePattern(repo: GitRepositoryContext, pattern: string | null): Promise<void> {
+    if (pattern === null) {
+      await this.unsetKey(repo, "jiraflow.issuePattern");
+      return;
+    }
+    await this.runOk(repo, ["config", "--local", "jiraflow.issuePattern", pattern]);
+  }
+
+  async setPrTitleTemplate(repo: GitRepositoryContext, value: string | null): Promise<void> {
+    if (value === null) {
+      await this.unsetKey(repo, "jiraflow.prTitleTemplate");
+      return;
+    }
+    await this.runOk(repo, ["config", "--local", "jiraflow.prTitleTemplate", value]);
+  }
+
+  async setDateFormat(repo: GitRepositoryContext, value: string | null): Promise<void> {
+    if (value === null) {
+      await this.unsetKey(repo, "jiraflow.dateFormat");
+      return;
+    }
+    await this.runOk(repo, ["config", "--local", "jiraflow.dateFormat", value]);
+  }
+
+  async unset(repo: GitRepositoryContext, key: string): Promise<void> {
+    await this.unsetKey(repo, key.startsWith("jiraflow.") ? key : `jiraflow.${key}`);
   }
 
   async removeAll(repo: GitRepositoryContext): Promise<void> {
@@ -97,9 +120,20 @@ export class GitConfigStore implements RepoConfigPort {
       args: ["config", "--local", "--remove-section", "jiraflow"],
     });
     if (result.exitCode === 0) return;
-    // A missing section is success: removal is idempotent.
     if (result.stderr.includes("no such section")) return;
     throw new Error(`git config --remove-section jiraflow failed: ${result.stderr.trim()}`);
+  }
+
+  private async unsetKey(repo: GitRepositoryContext, key: string): Promise<void> {
+    const result = await this.runner.run({
+      cwd: repo.root,
+      args: ["config", "--local", "--unset", key],
+    });
+    if (result.exitCode === 0) return;
+    if (result.exitCode === 5 || result.stderr.toLowerCase().includes("not found")) {
+      return;
+    }
+    throw new Error(`git config --unset ${key} failed: ${result.stderr.trim()}`);
   }
 
   private async runOk(repo: GitRepositoryContext, args: string[]): Promise<void> {
@@ -130,8 +164,14 @@ export class GitConfigStore implements RepoConfigPort {
   }
 }
 
+function optionalString(value: string | undefined): string | null {
+  if (value === undefined || value.length === 0) {
+    return null;
+  }
+  return value;
+}
+
 function parseBool(key: string, value: string): boolean {
-  // Git already normalized the value through --type=bool; accept its output.
   if (value === "true") return true;
   if (value === "false") return false;
   throw new ConfigInvalidError(key, value);

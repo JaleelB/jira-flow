@@ -60,6 +60,8 @@ describe("GitConfigStore", () => {
       mode: "hybrid",
       issuePattern: null,
       commitFormat: "footer",
+      prTitleTemplate: null,
+      dateFormat: null,
     });
   });
 
@@ -77,6 +79,35 @@ describe("GitConfigStore", () => {
     expect(config?.mode).toBe("hybrid");
     expect(config?.commitFormat).toBeNull();
     expect(config?.issuePattern).toBeNull();
+    expect(config?.prTitleTemplate).toBeNull();
+    expect(config?.dateFormat).toBeNull();
+  });
+
+  test("setIssuePattern / setPrTitleTemplate / setDateFormat round-trip and unset", async () => {
+    const { repo, context, store } = await setup();
+    await store.setEnabled(context, true);
+    await store.setIssuePattern(context, "PROJ-\\d+");
+    await store.setPrTitleTemplate(context, "{jiraKey} {storyTitle}");
+    await store.setDateFormat(context, "YYYY-MM-DD");
+
+    expect(await store.read(context)).toMatchObject({
+      issuePattern: "PROJ-\\d+",
+      prTitleTemplate: "{jiraKey} {storyTitle}",
+      dateFormat: "YYYY-MM-DD",
+    });
+
+    const rawPattern = await repo.runOk(["config", "--local", "--get", "jiraflow.issuePattern"]);
+    expect(rawPattern.trim()).toBe("PROJ-\\d+");
+
+    await store.setIssuePattern(context, null);
+    await store.unset(context, "prTitleTemplate");
+    await store.setDateFormat(context, null);
+
+    const after = await store.read(context);
+    expect(after?.issuePattern).toBeNull();
+    expect(after?.prTitleTemplate).toBeNull();
+    expect(after?.dateFormat).toBeNull();
+    expect(after?.enabled).toBe(true);
   });
 
   test("removeAll removes the jiraflow section and is idempotent", async () => {
@@ -118,6 +149,22 @@ describe("computeEffectiveConfig", () => {
     expect(effective.mode).toBe("hybrid");
     expect(effective.issuePattern).toBe("[A-Z][A-Z0-9]*-\\d+");
     expect(effective.commitFormat).toBe("footer");
+    expect(effective.prTitleTemplate).toBe("{jiraKey} | {date} | {quarter} | {storyTitle}");
+    expect(effective.dateFormat).toBe("YYYY-MM-DD");
+  });
+
+  test("one-shot overlay wins over repo and built-in", async () => {
+    const { context, store } = await setup();
+    await store.setEnabled(context, true);
+    await store.setMode(context, "hybrid");
+    await store.setCommitFormat(context, "footer");
+    const effective = computeEffectiveConfig(await store.read(context), {
+      mode: "manual",
+      commitFormat: "suffix",
+    });
+    expect(effective.mode).toBe("manual");
+    expect(effective.commitFormat).toBe("suffix");
+    expect(effective.enabled).toBe(true);
   });
 
   test("repo overrides win over defaults", async () => {
