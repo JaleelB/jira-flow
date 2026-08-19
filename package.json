@@ -18,7 +18,9 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "lint": "biome check .",
-    "build": "bun run scripts/build.ts"
+    "build": "bun run scripts/build.ts",
+    "playground": "bun run scripts/playground.ts",
+    "jf": "bun scripts/jf.ts"
   },
   "keywords": [
     "jira",
