@@ -50,7 +50,7 @@ async function makeStatusView() {
   await config.setMode(context, "hybrid");
   await config.setCommitFormat(context, "footer");
   const state = new WorktreeStateStore(runner);
-  const hooks = new HookManager(git, runner);
+  const hooks = new HookManager(git);
   await hooks.installOwned(context, { binaryPath: "/opt/jira-flow/jira-flow" });
 
   const getRepositoryStatus = new GetRepositoryStatus({ git, config, state, hooks });

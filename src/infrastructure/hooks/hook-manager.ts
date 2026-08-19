@@ -16,7 +16,6 @@ import type {
   HookManagerPort,
 } from "../../application/ports/hooks.port";
 import { HookConflictError, HookPermissionDeniedError } from "../../domain/errors";
-import type { GitRunner } from "../git/git-runner";
 import { analyzeCommitMsgHook } from "./hook-analyzer";
 import { generateOwnedHookScript } from "./hook-script";
 
@@ -34,11 +33,9 @@ import { generateOwnedHookScript } from "./hook-script";
 
 export class HookManager implements HookManagerPort {
   private readonly git: GitPort;
-  private readonly runner: GitRunner;
 
-  constructor(git: GitPort, runner: GitRunner) {
+  constructor(git: GitPort) {
     this.git = git;
-    this.runner = runner;
   }
 
   async inspect(repo: GitRepositoryContext): Promise<HookInspection> {

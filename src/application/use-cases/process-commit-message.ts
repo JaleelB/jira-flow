@@ -7,10 +7,10 @@ import {
 } from "../../domain/errors";
 import { extractIssueKeyFromBranch } from "../../domain/issue-key";
 import type { FilesystemPort } from "../ports/filesystem.port";
-import type { GitPort } from "../ports/git.port";
+import type { GitPort, GitRepositoryContext } from "../ports/git.port";
 import type { RepoConfigPort } from "../ports/repo-config.port";
-import type { WorktreeStatePort } from "../ports/worktree-state.port";
-import { computeEffectiveConfig } from "../services/effective-config";
+import type { WorktreeState, WorktreeStatePort } from "../ports/worktree-state.port";
+import { computeEffectiveConfig, type EffectiveWorkflowConfig } from "../services/effective-config";
 
 /**
  * `processCommitMessage` — the commit-message use case behind
@@ -61,7 +61,7 @@ export class ProcessCommitMessage {
   }
 
   async execute(input: ProcessCommitMessageInput): Promise<ProcessCommitMessageResult> {
-    let repo;
+    let repo: GitRepositoryContext;
     try {
       repo = await this.deps.git.discoverRepository(input.cwd);
     } catch (error) {
@@ -80,7 +80,7 @@ export class ProcessCommitMessage {
       return { outcome: "disabled" };
     }
 
-    let state;
+    let state: WorktreeState;
     try {
       state = await this.deps.state.read(repo);
     } catch (error) {
@@ -92,7 +92,7 @@ export class ProcessCommitMessage {
       throw error;
     }
 
-    let effective;
+    let effective: EffectiveWorkflowConfig;
     try {
       effective = computeEffectiveConfig(config);
     } catch (error) {

@@ -1,3 +1,4 @@
+import type { Subprocess } from "bun";
 import { GitUnavailableError } from "../../domain/errors";
 
 /**
@@ -46,7 +47,7 @@ export class GitRunner {
 
   async run(request: RunGitRequest): Promise<GitCommandResult> {
     const env = request.env ?? this.defaultEnv ?? process.env;
-    let proc;
+    let proc: Subprocess<"ignore" | "pipe", "pipe", "pipe">;
     try {
       proc = Bun.spawn([this.gitExecutable, ...request.args], {
         cwd: request.cwd,

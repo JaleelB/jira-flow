@@ -22,7 +22,7 @@ export function createTuiContainer(): {
   const git = new GitAdapter(runner);
   const config = new GitConfigStore(runner);
   const state = new WorktreeStateStore(runner);
-  const hooks = new HookManager(git, runner);
+  const hooks = new HookManager(git);
 
   const getRepositoryStatus = new GetRepositoryStatus({ git, config, state, hooks });
   const getStartupContext = new GetStartupContext({ git, getRepositoryStatus });

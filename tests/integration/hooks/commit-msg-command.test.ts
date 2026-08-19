@@ -165,8 +165,7 @@ describe("hook bootstrap import boundary", () => {
       visited.add(current);
 
       const source = readFileSync(current, "utf8");
-      let match: RegExpExecArray | null;
-      while ((match = importPattern.exec(source)) !== null) {
+      for (const match of source.matchAll(importPattern)) {
         const specifier = match[1];
         if (specifier === undefined) continue;
         for (const pattern of forbidden) {

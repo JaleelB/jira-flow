@@ -1,4 +1,4 @@
-import type { GitPort, GitRepositoryContext } from "../../application/ports/git.port";
+import type { GitRepositoryContext } from "../../application/ports/git.port";
 import type { GitRunner } from "../git/git-runner";
 import { BLOCK_ID, MANAGED_BLOCK_VERSION } from "./hook-markers";
 
@@ -27,12 +27,10 @@ export interface IntegrationMetadataStoreOptions {
 }
 
 export class IntegrationMetadataStore {
-  private readonly git: GitPort;
   private readonly runner: GitRunner;
   private readonly now: () => Date;
 
-  constructor(git: GitPort, runner: GitRunner, options: IntegrationMetadataStoreOptions = {}) {
-    this.git = git;
+  constructor(runner: GitRunner, options: IntegrationMetadataStoreOptions = {}) {
     this.runner = runner;
     this.now = options.now ?? (() => new Date());
   }

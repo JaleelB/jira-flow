@@ -28,8 +28,8 @@ async function setup() {
   const runner = new GitRunner({ env: repo.env });
   const git = new GitAdapter(runner);
   const context = await git.discoverRepository(repo.root);
-  const hooks = new HookManager(git, runner);
-  const metadata = new IntegrationMetadataStore(git, runner);
+  const hooks = new HookManager(git);
+  const metadata = new IntegrationMetadataStore(runner);
   return { repo, runner, git, context, hooks, metadata };
 }
 
@@ -124,7 +124,7 @@ describe("HookManager.installOwned", () => {
     const runner = new GitRunner({ env: repo.env });
     const git = new GitAdapter(runner);
     const context = await git.discoverRepository(repo.root);
-    const hooks = new HookManager(git, runner);
+    const hooks = new HookManager(git);
     await hooks.installOwned(context, { binaryPath: "/nonexistent/jira-flow" });
 
     // PATH contains no jira-flow: both branches fail safe; commit succeeds.

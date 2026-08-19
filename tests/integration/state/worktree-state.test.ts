@@ -1,6 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { readdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
 import { WorktreeStateInvalidError } from "../../../src/domain/errors";
 import type { JiraKey } from "../../../src/domain/issue-key";
 import { GitAdapter } from "../../../src/infrastructure/git/git-adapter";
