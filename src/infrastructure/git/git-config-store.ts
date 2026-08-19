@@ -99,9 +99,7 @@ export class GitConfigStore implements RepoConfigPort {
     if (result.exitCode === 0) return;
     // A missing section is success: removal is idempotent.
     if (result.stderr.includes("no such section")) return;
-    throw new Error(
-      `git config --remove-section jiraflow failed: ${result.stderr.trim()}`,
-    );
+    throw new Error(`git config --remove-section jiraflow failed: ${result.stderr.trim()}`);
   }
 
   private async runOk(repo: GitRepositoryContext, args: string[]): Promise<void> {

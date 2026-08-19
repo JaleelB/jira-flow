@@ -46,11 +46,12 @@ async function main(): Promise<number> {
     return 0;
   }
 
-  // Development-only smoke TUI until the real startup router exists (T-19).
-  // The TUI module is dynamically imported so headless paths never load it.
-  if (argv.length === 0 && process.env.JIRAFLOW_TUI_SMOKE === "1") {
-    const { runSmokeTui } = await import("./tui/run-tui");
-    await runSmokeTui();
+  // Root command with no arguments launches the TUI (product §6.1). The
+  // TUI module is dynamically imported so headless paths never load
+  // OpenTUI (ADR-0002/O-02, architecture §32).
+  if (argv.length === 0) {
+    const { runTui } = await import("./tui/run-tui");
+    await runTui();
     return 0;
   }
 
