@@ -11,8 +11,9 @@ export interface RegisteredRepository {
   path: string;
   displayName: string;
   remoteUrl: string | null;
-  createdAt: string;
-  updatedAt: string;
+  /** Unix epoch milliseconds (SQLite schema stores INTEGER). */
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface RegisterRepositoryInput {

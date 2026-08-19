@@ -157,8 +157,8 @@ class FakeRegistry implements RegistryPort {
       path: input.path,
       displayName: input.displayName,
       remoteUrl: input.remoteUrl,
-      createdAt: "now",
-      updatedAt: "now",
+      createdAt: 0,
+      updatedAt: 0,
     };
   }
 }
