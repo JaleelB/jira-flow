@@ -1,5 +1,6 @@
 import { useKeyboard } from "@opentui/react";
 import type { StartupContext } from "../application/use-cases/get-startup-context";
+import { palette } from "../ui/theme";
 import { type TuiServices, TuiServicesContext } from "./app-context";
 import { RepositoryOverview } from "./screens/repository-overview";
 
@@ -49,18 +50,21 @@ function UnconfiguredRepoStub({ repoPath, onQuit }: { repoPath: string; onQuit: 
         flexDirection: "column",
         paddingLeft: 2,
         paddingTop: 1,
+        paddingRight: 2,
         width: "100%",
         height: "100%",
+        backgroundColor: palette.surface,
       }}
     >
-      <text>JiraFlow</text>
+      <text style={{ fg: palette.mute }}>JIRAFLOW</text>
+      <text style={{ fg: palette.ink }}>Not configured</text>
       <text> </text>
-      <text>This repository is not configured for JiraFlow:</text>
-      <text>{repoPath}</text>
+      <text style={{ fg: palette.ink }}>This repository is not configured for JiraFlow:</text>
+      <text style={{ fg: palette.mute }}>{repoPath}</text>
       <text> </text>
-      <text>Run `jira-flow init --yes` to set it up.</text>
+      <text style={{ fg: palette.ticket }}>Run `jira-flow init --yes` to set it up.</text>
       <text> </text>
-      <text>[Q] Quit</text>
+      <text style={{ fg: palette.mute }}>[Q] Quit</text>
     </box>
   );
 }
@@ -78,16 +82,21 @@ function EmptyStateStub({ onQuit }: { onQuit: () => void }) {
         flexDirection: "column",
         paddingLeft: 2,
         paddingTop: 1,
+        paddingRight: 2,
         width: "100%",
         height: "100%",
+        backgroundColor: palette.surface,
       }}
     >
-      <text>JiraFlow</text>
+      <text style={{ fg: palette.mute }}>JIRAFLOW</text>
+      <text style={{ fg: palette.ink }}>No repository</text>
       <text> </text>
-      <text>Not inside a Git repository.</text>
-      <text>Run `jira-flow init --yes` inside a repository to begin.</text>
+      <text style={{ fg: palette.ink }}>Not inside a Git repository.</text>
+      <text style={{ fg: palette.mute }}>
+        Run `jira-flow init --yes` inside a repository to begin.
+      </text>
       <text> </text>
-      <text>[Q] Quit</text>
+      <text style={{ fg: palette.mute }}>[Q] Quit</text>
     </box>
   );
 }

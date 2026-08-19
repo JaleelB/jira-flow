@@ -1,4 +1,5 @@
 import type { JiraFlowError } from "../../domain/errors";
+import { colorEnabled, createAnsi } from "./ansi";
 
 /**
  * Prints a typed JiraFlow error for human consumption.
@@ -7,7 +8,8 @@ import type { JiraFlowError } from "../../domain/errors";
  * to string matching for behavior (architecture §36).
  */
 export function printError(error: JiraFlowError): void {
-  process.stderr.write(`jira-flow: ${error.code}: ${error.message}\n`);
+  const ansi = createAnsi(colorEnabled(process.stderr));
+  process.stderr.write(`jira-flow: ${ansi.fail(error.code)}: ${error.message}\n`);
 }
 
 /** Prints an unexpected (non-typed) error. Exit code stays 1. */

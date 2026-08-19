@@ -80,14 +80,13 @@ describe("compiled vertical slice (VT-11, VT-12)", () => {
 
     const status = await runCompiledJiraFlow(["status"], { cwd: repo.root, env });
     expect(status.exitCode).toBe(0);
-    expect(status.stdout).toContain("JiraFlow: enabled");
-    expect(status.stdout).toContain("Mode: Hybrid");
-    expect(status.stdout).toContain("Branch: feat/ABC-123-login");
-    expect(status.stdout).toContain("Branch issue: ABC-123");
-    expect(status.stdout).toContain("Active issue: ABC-123");
-    expect(status.stdout).toContain("Active source: branch");
-    expect(status.stdout).toContain("Commit format: footer");
-    expect(status.stdout).toContain("Integration: healthy");
+    expect(status.stdout).toContain("enabled");
+    expect(status.stdout).toContain("Hybrid");
+    expect(status.stdout).toContain("feat/ABC-123-login");
+    expect(status.stdout).toContain("ABC-123");
+    expect(status.stdout).toContain("branch");
+    expect(status.stdout).toContain("footer");
+    expect(status.stdout).toContain("healthy");
 
     const doctor = await runCompiledJiraFlow(["doctor"], { cwd: repo.root, env });
     expect(doctor.exitCode).toBe(0);

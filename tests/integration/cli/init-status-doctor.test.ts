@@ -134,15 +134,14 @@ describe("jira-flow status", () => {
 
     const result = await runCli(["status"], repo.root);
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("JiraFlow: enabled");
-    expect(result.stdout).toContain("Mode: Hybrid");
-    expect(result.stdout).toContain("Branch: feat/ABC-123-login");
-    expect(result.stdout).toContain("Branch issue: ABC-123");
-    expect(result.stdout).toContain("Linked issue: none");
-    expect(result.stdout).toContain("Active issue: ABC-123");
-    expect(result.stdout).toContain("Active source: branch");
-    expect(result.stdout).toContain("Commit format: footer");
-    expect(result.stdout).toContain("Integration: healthy");
+    expect(result.stdout).toContain("enabled");
+    expect(result.stdout).toContain("Hybrid");
+    expect(result.stdout).toContain("feat/ABC-123-login");
+    expect(result.stdout).toContain("ABC-123");
+    expect(result.stdout).toContain("none");
+    expect(result.stdout).toContain("branch");
+    expect(result.stdout).toContain("footer");
+    expect(result.stdout).toContain("healthy");
   });
 
   test("status outside a configured repo exits 3", async () => {

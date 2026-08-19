@@ -1,72 +1,117 @@
 import type { DoctorResult } from "../../application/models/doctor-result";
 import type { RepositoryStatusView } from "../../application/models/status-view";
 import type { InitializeRepositoryResult } from "../../application/use-cases/initialize-repository";
+import { type Ansi, createAnsi } from "./ansi";
 
 /**
  * Human output formatters (architecture §35).
  *
- * Result models stay separate from formatters. No color decoration in VS-1.
+ * Result models stay separate from formatters. Color is TTY-only and is
+ * suppressed by NO_COLOR. JSON mode (later) must not call these.
  */
 
-export function formatRepositoryStatus(view: RepositoryStatusView): string {
-  const lines = [
-    `JiraFlow: ${view.enabled ? "enabled" : "disabled"}`,
-    `Repository: ${view.repoName}`,
-    `Mode: ${capitalize(view.mode)}`,
-    `Branch: ${view.branch ?? "(detached HEAD)"}`,
-    `Branch issue: ${view.branchIssue ?? "none"}`,
-    `Linked issue: ${view.linkedIssue ?? "none"}`,
-    `Active issue: ${view.activeIssue?.key ?? "none"}`,
-    `Active source: ${view.activeIssue?.source ?? "none"}`,
-    `Commit format: ${view.commitFormat}`,
-    `Integration: ${formatIntegration(view.integration.status)}`,
-  ];
-  return `${lines.join("\n")}\n`;
+const LABEL_WIDTH = 14;
+
+export function formatRepositoryStatus(
+  view: RepositoryStatusView,
+  ansi: Ansi = createAnsi(),
+): string {
+  const active = view.activeIssue?.key ?? "none";
+  const activeStyled = view.activeIssue !== null ? ansi.ticket(active) : ansi.mute("none");
+
+  return rail(ansi, [
+    `${ansi.bold("jira-flow")}  ${ansi.mute(view.repoName)}`,
+    "",
+    row(ansi, "JiraFlow", view.enabled ? ansi.ok("enabled") : ansi.fail("disabled")),
+    row(ansi, "Mode", capitalize(view.mode)),
+    row(ansi, "Active issue", activeStyled),
+    row(ansi, "Active source", view.activeIssue?.source ?? "none"),
+    row(ansi, "Branch", view.branch ?? "(detached HEAD)"),
+    row(ansi, "Branch issue", view.branchIssue ?? "none"),
+    row(ansi, "Linked issue", view.linkedIssue ?? "none"),
+    row(ansi, "Commit format", view.commitFormat),
+    row(ansi, "Integration", integrationValue(ansi, view.integration.status)),
+  ]);
 }
 
-function formatIntegration(status: RepositoryStatusView["integration"]["status"]): string {
+export function formatInitializeResult(
+  result: InitializeRepositoryResult,
+  ansi: Ansi = createAnsi(),
+): string {
+  const title =
+    result.outcome === "initialized"
+      ? `Initialized JiraFlow for ${result.repoPath}`
+      : `JiraFlow is already configured for ${result.repoPath}`;
+
+  const hook = result.hook.created
+    ? `Installed owned commit-msg integration: ${result.hook.hookPath}`
+    : `Owned commit-msg integration verified: ${result.hook.hookPath}`;
+
+  const lines = [ansi.ok(ansi.bold(title)), hook];
+  if (result.registryWarning !== undefined) {
+    lines.push(ansi.warn(`Warning: ${result.registryWarning}`));
+  }
+  return rail(ansi, lines);
+}
+
+export function formatDoctorResult(result: DoctorResult, ansi: Ansi = createAnsi()): string {
+  const overall =
+    result.overall === "healthy"
+      ? ansi.ok("healthy")
+      : result.overall === "warning"
+        ? ansi.warn("warning")
+        : ansi.fail("broken");
+
+  const lines: string[] = [`${ansi.bold("Doctor")}: ${overall}`];
+  if (result.repoPath !== null) {
+    lines.push(ansi.mute(result.repoPath));
+  }
+  lines.push("");
+  for (const check of result.checks) {
+    const marker =
+      check.status === "pass"
+        ? ansi.ok("[ok]")
+        : check.status === "warning"
+          ? ansi.warn("[warn]")
+          : ansi.fail("[fail]");
+    const detail = check.detail !== undefined ? ansi.mute(`: ${check.detail}`) : "";
+    lines.push(`${marker} ${check.id}${detail}`);
+  }
+  return rail(ansi, lines);
+}
+
+function rail(ansi: Ansi, lines: string[]): string {
+  const diamond = ansi.ticket("◆");
+  const bar = ansi.mute("│");
+  const end = ansi.mute("└");
+  const body = lines.map((line, index) => {
+    if (index === 0) {
+      return `${diamond}  ${line}`;
+    }
+    return line.length === 0 ? `${bar}` : `${bar}  ${line}`;
+  });
+  return `${body.join("\n")}\n${end}\n`;
+}
+
+function row(ansi: Ansi, label: string, value: string): string {
+  const padded = label.padEnd(LABEL_WIDTH);
+  return `${ansi.mute(padded)}  ${value}`;
+}
+
+function integrationValue(
+  ansi: Ansi,
+  status: RepositoryStatusView["integration"]["status"],
+): string {
   switch (status) {
     case "owned":
-      return "healthy";
+      return ansi.ok("healthy");
     case "missing":
-      return "missing";
+      return ansi.warn("missing");
     case "conflict":
-      return "conflict";
+      return ansi.fail("conflict");
   }
 }
 
 function capitalize(value: string): string {
   return value.length === 0 ? value : `${value[0]?.toUpperCase()}${value.slice(1)}`;
-}
-
-export function formatInitializeResult(result: InitializeRepositoryResult): string {
-  const lines: string[] = [];
-  if (result.outcome === "initialized") {
-    lines.push(`Initialized JiraFlow for ${result.repoPath}`);
-  } else {
-    lines.push(`JiraFlow is already configured for ${result.repoPath}`);
-  }
-  lines.push(
-    result.hook.created
-      ? `Installed owned commit-msg integration: ${result.hook.hookPath}`
-      : `Owned commit-msg integration verified: ${result.hook.hookPath}`,
-  );
-  if (result.registryWarning !== undefined) {
-    lines.push(`Warning: ${result.registryWarning}`);
-  }
-  return `${lines.join("\n")}\n`;
-}
-
-export function formatDoctorResult(result: DoctorResult): string {
-  const lines: string[] = [];
-  lines.push(`Doctor: ${result.overall}`);
-  if (result.repoPath !== null) {
-    lines.push(`Repository: ${result.repoPath}`);
-  }
-  for (const check of result.checks) {
-    const marker =
-      check.status === "pass" ? "[ok]" : check.status === "warning" ? "[warn]" : "[fail]";
-    lines.push(`${marker} ${check.id}${check.detail !== undefined ? `: ${check.detail}` : ""}`);
-  }
-  return `${lines.join("\n")}\n`;
 }
