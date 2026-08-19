@@ -30,6 +30,22 @@ async function main(): Promise<number> {
     return 0;
   }
 
+  // Headless commands share the CLI composition root.
+  const headlessCommand = new Set(["init", "status", "doctor"]);
+  if (argv[0] !== undefined && headlessCommand.has(argv[0])) {
+    const { createCliContainer } = await import("./bootstrap/cli-container");
+    const { registerInitCommand } = await import("./cli/commands/init");
+    const { registerStatusCommand } = await import("./cli/commands/status");
+    const { registerDoctorCommand } = await import("./cli/commands/doctor");
+    const container = createCliContainer();
+    const program = buildProgram();
+    registerInitCommand(program, container);
+    registerStatusCommand(program, container);
+    registerDoctorCommand(program, container);
+    await program.parseAsync(process.argv);
+    return 0;
+  }
+
   // Development-only smoke TUI until the real startup router exists (T-19).
   // The TUI module is dynamically imported so headless paths never load it.
   if (argv.length === 0 && process.env.JIRAFLOW_TUI_SMOKE === "1") {

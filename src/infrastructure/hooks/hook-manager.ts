@@ -84,6 +84,24 @@ export class HookManager implements HookManagerPort {
     return { strategy: "owned", hookPath: hooks.commitMsgPath, created };
   }
 
+  async removeOwned(repo: GitRepositoryContext, options: HookInstallOptions): Promise<boolean> {
+    const hooks = await this.git.resolveHooks(repo);
+    const existing = await this.readHookFile(hooks.commitMsgPath);
+    if (existing === null) {
+      return false;
+    }
+
+    // Verify before delete: only remove a file that exactly matches the
+    // owned structure we would generate (architecture invariant 17).
+    const expected = generateOwnedHookScript({ binaryPath: options.binaryPath });
+    if (existing !== expected) {
+      return false;
+    }
+
+    rmSync(hooks.commitMsgPath, { force: true });
+    return true;
+  }
+
   private async readHookFile(path: string): Promise<string | null> {
     const file = Bun.file(path);
     if (!(await file.exists())) {

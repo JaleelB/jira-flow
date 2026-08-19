@@ -38,4 +38,12 @@ export interface HookManagerPort {
    * (ADR-0005/O-01).
    */
   installOwned(repo: GitRepositoryContext, options: HookInstallOptions): Promise<HookInstallResult>;
+
+  /**
+   * Removes the `commit-msg` hook only when it exactly matches JiraFlow's
+   * current owned structure (verify-before-delete, architecture invariant
+   * 17). Returns true when the file was removed. Used by the DR-0016 init
+   * rollback path; the user-facing `remove` flow arrives with E4.
+   */
+  removeOwned(repo: GitRepositoryContext, options: HookInstallOptions): Promise<boolean>;
 }
