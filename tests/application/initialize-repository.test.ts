@@ -145,6 +145,22 @@ class FakeHooks implements HookManagerPort {
     return { strategy: "owned", hookPath: this.inspection.hookPath, created };
   }
 
+  async install(
+    repo: GitRepositoryContext,
+    options: HookInstallOptions,
+  ): Promise<HookInstallResult> {
+    return this.installOwned(repo, options);
+  }
+
+  async remove(): Promise<import("../../src/application/ports/hooks.port").HookRemoveResult> {
+    const removed = await this.removeOwned();
+    return {
+      removed,
+      mode: removed ? "owned-file" : "none",
+      hookPath: this.inspection.hookPath,
+    };
+  }
+
   async removeOwned(): Promise<boolean> {
     this.removeOwnedCalls += 1;
     this.installed = false;

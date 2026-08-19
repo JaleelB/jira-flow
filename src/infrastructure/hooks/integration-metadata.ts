@@ -1,25 +1,29 @@
 import type { GitRepositoryContext } from "../../application/ports/git.port";
 import type { GitRunner } from "../git/git-runner";
+import { writeJsonAtomic } from "../state/atomic-json-file";
 import { BLOCK_ID, MANAGED_BLOCK_VERSION } from "./hook-markers";
 
 /**
  * Hook integration metadata (architecture §18).
  *
- * Stored at the Git-resolved `jiraflow/integration.json` path inside the
- * Git directory. Metadata is evidence only — it never authorizes deletion
- * by itself; removal always verifies the actual hook file.
+ * Stored at the Git-resolved `jiraflow/integration.json` path. Metadata is
+ * evidence only — it never authorizes deletion by itself.
  */
+
+export type HookStrategy = "owned" | "composed";
 
 export interface HookIntegrationMetadata {
   schemaVersion: 1;
   hook: "commit-msg";
-  strategy: "owned";
+  strategy: HookStrategy;
   hookPath: string;
   blockVersion: number;
   blockId: string;
   capturedBinaryPath: string | null;
   installedAt: string;
   lastVerifiedAt: string;
+  originalSha256?: string;
+  backupPath?: string;
 }
 
 export interface IntegrationMetadataStoreOptions {
@@ -37,23 +41,32 @@ export class IntegrationMetadataStore {
 
   async write(
     repo: GitRepositoryContext,
-    input: { hookPath: string; capturedBinaryPath: string | null; installedAt?: Date },
+    input: {
+      hookPath: string;
+      capturedBinaryPath: string | null;
+      strategy?: HookStrategy;
+      originalSha256?: string;
+      backupPath?: string;
+      installedAt?: Date;
+    },
   ): Promise<HookIntegrationMetadata> {
     const path = await this.resolveMetadataPath(repo);
     const timestamp = (input.installedAt ?? this.now()).toISOString();
     const metadata: HookIntegrationMetadata = {
       schemaVersion: 1,
       hook: "commit-msg",
-      strategy: "owned",
+      strategy: input.strategy ?? "owned",
       hookPath: input.hookPath,
       blockVersion: MANAGED_BLOCK_VERSION,
       blockId: BLOCK_ID,
       capturedBinaryPath: input.capturedBinaryPath,
       installedAt: timestamp,
       lastVerifiedAt: timestamp,
+      ...(input.originalSha256 !== undefined ? { originalSha256: input.originalSha256 } : {}),
+      ...(input.backupPath !== undefined ? { backupPath: input.backupPath } : {}),
     };
 
-    await Bun.write(path, `${JSON.stringify(metadata, null, 2)}\n`);
+    writeJsonAtomic(path, metadata);
     return metadata;
   }
 
@@ -63,8 +76,7 @@ export class IntegrationMetadataStore {
     if (!(await file.exists())) {
       return null;
     }
-    const parsed = JSON.parse(await file.text()) as HookIntegrationMetadata;
-    return parsed;
+    return JSON.parse(await file.text()) as HookIntegrationMetadata;
   }
 
   async remove(repo: GitRepositoryContext): Promise<void> {
@@ -73,7 +85,18 @@ export class IntegrationMetadataStore {
     rmSync(path, { force: true });
   }
 
-  private async resolveMetadataPath(repo: GitRepositoryContext): Promise<string> {
+  async resolveBackupDir(repo: GitRepositoryContext): Promise<string> {
+    const result = await this.runner.run({
+      cwd: repo.root,
+      args: ["rev-parse", "--path-format=absolute", "--git-path", "jiraflow/backups"],
+    });
+    if (result.exitCode !== 0) {
+      throw new Error(`git rev-parse --git-path jiraflow/backups failed: ${result.stderr.trim()}`);
+    }
+    return result.stdout.trim();
+  }
+
+  async resolveMetadataPath(repo: GitRepositoryContext): Promise<string> {
     const result = await this.runner.run({
       cwd: repo.root,
       args: ["rev-parse", "--path-format=absolute", "--git-path", "jiraflow/integration.json"],

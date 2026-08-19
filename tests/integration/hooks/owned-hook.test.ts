@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { chmodSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { HookConflictError } from "../../../src/domain/errors";
+import { HookConflictError, HookUnsafeToModifyError } from "../../../src/domain/errors";
 import { GitAdapter } from "../../../src/infrastructure/git/git-adapter";
 import { GitRunner } from "../../../src/infrastructure/git/git-runner";
 import { HookManager } from "../../../src/infrastructure/hooks/hook-manager";
@@ -28,7 +28,7 @@ async function setup() {
   const runner = new GitRunner({ env: repo.env });
   const git = new GitAdapter(runner);
   const context = await git.discoverRepository(repo.root);
-  const hooks = new HookManager(git);
+  const hooks = new HookManager(git, runner);
   const metadata = new IntegrationMetadataStore(runner);
   return { repo, runner, git, context, hooks, metadata };
 }
@@ -97,7 +97,7 @@ describe("HookManager.installOwned", () => {
     await Bun.write(hookPath, damaged);
 
     await expect(hooks.installOwned(context, { binaryPath: FAKE_BINARY })).rejects.toBeInstanceOf(
-      HookConflictError,
+      HookUnsafeToModifyError,
     );
   });
 
@@ -124,7 +124,7 @@ describe("HookManager.installOwned", () => {
     const runner = new GitRunner({ env: repo.env });
     const git = new GitAdapter(runner);
     const context = await git.discoverRepository(repo.root);
-    const hooks = new HookManager(git);
+    const hooks = new HookManager(git, runner);
     await hooks.installOwned(context, { binaryPath: "/nonexistent/jira-flow" });
 
     // PATH contains no jira-flow: both branches fail safe; commit succeeds.
@@ -182,7 +182,7 @@ describe("HookManager.inspect", () => {
     const { repo, context, hooks } = await setup();
     await Bun.write(join(repo.root, ".git", "hooks", "commit-msg"), "#!/bin/sh\nexit 0\n");
     const inspection = await hooks.inspect(context);
-    expect(inspection.status).toBe("conflict");
-    expect(inspection.reason).toBeTruthy();
+    expect(inspection.status).toBe("composable-shell");
+    expect(inspection.interpreter).toBe("sh");
   });
 });

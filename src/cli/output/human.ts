@@ -104,11 +104,12 @@ function integrationValue(
 ): string {
   switch (status) {
     case "owned":
+    case "managed-block":
       return ansi.ok("healthy");
     case "missing":
       return ansi.warn("missing");
-    case "conflict":
-      return ansi.fail("conflict");
+    default:
+      return ansi.fail(status);
   }
 }
 

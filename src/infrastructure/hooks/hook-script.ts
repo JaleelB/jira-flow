@@ -22,12 +22,10 @@ export interface OwnedHookScriptOptions {
   binaryPath: string | null;
 }
 
-export function generateOwnedHookScript(options: OwnedHookScriptOptions): string {
+export function generateManagedBlock(options: OwnedHookScriptOptions): string {
   const lines: string[] = [];
-  lines.push("#!/bin/sh");
-  lines.push("");
   lines.push(BEGIN_MARKER);
-  lines.push("# JiraFlow owned hook. `jira-flow remove` deletes this file when it still matches.");
+  lines.push("# JiraFlow managed commit-msg integration.");
   if (options.binaryPath !== null) {
     lines.push(`JIRAFLOW_BIN=${shellQuote(toPosixPath(options.binaryPath))}`);
     lines.push("");
@@ -42,8 +40,11 @@ export function generateOwnedHookScript(options: OwnedHookScriptOptions): string
     lines.push("fi");
   }
   lines.push(END_MARKER);
-  lines.push("");
   return lines.join("\n");
+}
+
+export function generateOwnedHookScript(options: OwnedHookScriptOptions): string {
+  return `#!/bin/sh\n\n${generateManagedBlock(options)}\n`;
 }
 
 /** Single-quote escaping for POSIX shell assignments. */

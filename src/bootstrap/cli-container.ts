@@ -45,7 +45,7 @@ export function createCliContainer(options: { registry?: RegistryPort | null } =
   const git = new GitAdapter(runner);
   const config = new GitConfigStore(runner);
   const state = new WorktreeStateStore(runner);
-  const hooks = new HookManager(git);
+  const hooks = new HookManager(git, runner);
   const metadata = new IntegrationMetadataStore(runner);
   const filesystem = new SystemFilesystem();
 

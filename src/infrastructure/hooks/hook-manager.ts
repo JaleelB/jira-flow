@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   chmodSync,
   closeSync,
@@ -8,95 +9,244 @@ import {
   rmSync,
   writeSync,
 } from "node:fs";
+import { join } from "node:path";
 import type { GitPort, GitRepositoryContext } from "../../application/ports/git.port";
 import type {
   HookInspection,
   HookInstallOptions,
   HookInstallResult,
   HookManagerPort,
+  HookRemoveResult,
 } from "../../application/ports/hooks.port";
-import { HookConflictError, HookPermissionDeniedError } from "../../domain/errors";
+import {
+  HookConflictError,
+  HookPermissionDeniedError,
+  HookUnsafeToModifyError,
+} from "../../domain/errors";
+import type { GitRunner } from "../git/git-runner";
+import {
+  insertManagedBlockAfterShebang,
+  replaceManagedBlock,
+  stripManagedBlock,
+} from "./compose-shell-hook";
 import { analyzeCommitMsgHook } from "./hook-analyzer";
-import { generateOwnedHookScript } from "./hook-script";
+import { classifyHooksPath } from "./hook-path-classification";
+import { generateManagedBlock, generateOwnedHookScript } from "./hook-script";
+import { IntegrationMetadataStore } from "./integration-metadata";
 
 /**
- * Hook manager (ADR-0005, architecture §16, VS-1 Strategy A only).
+ * Hook manager (ADR-0005, architecture §16–18, DR-0018).
  *
- * The effective hooks directory is resolved through Git (ADR-0003/O-01):
- * `core.hooksPath` is honored and the default comes from
- * `git rev-parse --git-path hooks`. JiraFlow never touches `.git/hooks`
- * by string concatenation.
- *
- * Only `commit-msg` is managed; no `post-checkout` hook exists in v1
- * (ADR-0005/O-03).
+ * Effective hooks directory is resolved through Git. `--yes` is not a
+ * parameter here; callers pass explicit compose/shared consent.
  */
 
 export class HookManager implements HookManagerPort {
   private readonly git: GitPort;
+  private readonly metadata: IntegrationMetadataStore;
 
-  constructor(git: GitPort) {
+  constructor(git: GitPort, runner: GitRunner) {
     this.git = git;
+    this.metadata = new IntegrationMetadataStore(runner);
   }
 
   async inspect(repo: GitRepositoryContext): Promise<HookInspection> {
     const hooks = await this.git.resolveHooks(repo);
-    const content = await this.readHookFile(hooks.commitMsgPath);
-    const analysis = analyzeCommitMsgHook(content);
-
-    switch (analysis.status) {
-      case "missing":
-        return { status: "missing", hookPath: hooks.commitMsgPath };
-      case "owned":
-        return { status: "owned", hookPath: hooks.commitMsgPath };
-      case "conflict":
-        return {
-          status: "conflict",
-          hookPath: hooks.commitMsgPath,
-          reason: analysis.reason,
-        };
+    const pathClass = classifyHooksPath(repo, hooks);
+    let content: string | null;
+    try {
+      content = await this.readHookFile(hooks.commitMsgPath);
+    } catch {
+      return {
+        status: "permission-denied",
+        hookPath: hooks.commitMsgPath,
+        hooksPathClass: pathClass,
+        reason: "commit-msg is not readable",
+      };
     }
+
+    const analysis = analyzeCommitMsgHook(content);
+    const contentClass = analysis.status;
+    const base: HookInspection = {
+      status: contentClass === "composable-shell" ? "composable-shell" : contentClass,
+      hookPath: hooks.commitMsgPath,
+      hooksPathClass: pathClass,
+      contentClass,
+      ...(analysis.status === "composable-shell" ? { interpreter: analysis.interpreter } : {}),
+      ...("reason" in analysis ? { reason: analysis.reason } : {}),
+    };
+
+    if (
+      pathClass === "shared-external" &&
+      (contentClass === "missing" || contentClass === "composable-shell")
+    ) {
+      return {
+        ...base,
+        status: "shared-external",
+        reason:
+          contentClass === "missing"
+            ? "hooksPath is shared/external; missing commit-msg will not be created without --allow-shared-hooks"
+            : "hooksPath is shared/external; composing requires --compose-existing-hook --allow-shared-hooks",
+      };
+    }
+
+    if (contentClass === "unsupported" || contentClass === "malformed-jiraflow") {
+      return { ...base, status: contentClass };
+    }
+
+    return base;
   }
 
   async installOwned(
     repo: GitRepositoryContext,
     options: HookInstallOptions,
   ): Promise<HookInstallResult> {
-    const hooks = await this.git.resolveHooks(repo);
-    const existing = await this.readHookFile(hooks.commitMsgPath);
-    const analysis = analyzeCommitMsgHook(existing);
+    return this.install(repo, { ...options, composeExistingHook: false, allowSharedHooks: false });
+  }
 
-    if (analysis.status === "conflict") {
-      // Foreign or damaged hooks are never modified (ADR-0005/O-01).
-      throw new HookConflictError(hooks.commitMsgPath);
+  async install(
+    repo: GitRepositoryContext,
+    options: HookInstallOptions,
+  ): Promise<HookInstallResult> {
+    const compose = options.composeExistingHook === true;
+    const allowShared = options.allowSharedHooks === true;
+    const hooks = await this.git.resolveHooks(repo);
+    const pathClass = classifyHooksPath(repo, hooks);
+    const shared = pathClass === "shared-external";
+
+    let existing: string | null;
+    try {
+      existing = await this.readHookFile(hooks.commitMsgPath);
+    } catch {
+      throw new HookPermissionDeniedError(hooks.commitMsgPath);
     }
 
-    const script = generateOwnedHookScript({ binaryPath: options.binaryPath });
-    const created = analysis.status === "missing";
+    const analysis = analyzeCommitMsgHook(existing);
 
-    if (existing === script) {
+    if (
+      shared &&
+      !allowShared &&
+      analysis.status !== "owned" &&
+      analysis.status !== "managed-block"
+    ) {
+      throw new HookUnsafeToModifyError(
+        hooks.commitMsgPath,
+        "shared/external hooksPath is never mutated without --allow-shared-hooks",
+      );
+    }
+
+    if (analysis.status === "unsupported") {
+      throw new HookUnsafeToModifyError(hooks.commitMsgPath, analysis.reason);
+    }
+    if (analysis.status === "malformed-jiraflow") {
+      throw new HookUnsafeToModifyError(hooks.commitMsgPath, analysis.reason);
+    }
+
+    if (analysis.status === "composable-shell") {
+      if (!compose) {
+        throw new HookConflictError(hooks.commitMsgPath);
+      }
+      if (shared && !allowShared) {
+        throw new HookUnsafeToModifyError(
+          hooks.commitMsgPath,
+          "shared/external composition requires --compose-existing-hook and --allow-shared-hooks",
+        );
+      }
+      return this.composeInto(repo, hooks.commitMsgPath, existing ?? "", options.binaryPath);
+    }
+
+    if (analysis.status === "missing") {
+      if (shared && !allowShared) {
+        throw new HookUnsafeToModifyError(
+          hooks.commitMsgPath,
+          "shared/external hooksPath is never mutated without --allow-shared-hooks",
+        );
+      }
+      const script = generateOwnedHookScript({ binaryPath: options.binaryPath });
+      this.writeHookFile(hooks.commitMsgPath, script);
+      return { strategy: "owned", hookPath: hooks.commitMsgPath, created: true };
+    }
+
+    if (analysis.status === "owned") {
+      const script = generateOwnedHookScript({ binaryPath: options.binaryPath });
+      if (existing === script) {
+        return { strategy: "owned", hookPath: hooks.commitMsgPath, created: false };
+      }
+      this.writeHookFile(hooks.commitMsgPath, script);
       return { strategy: "owned", hookPath: hooks.commitMsgPath, created: false };
     }
 
-    this.writeHookFile(hooks.commitMsgPath, script);
-    return { strategy: "owned", hookPath: hooks.commitMsgPath, created };
+    // managed-block: refresh the block in place, never duplicate.
+    const block = generateManagedBlock({ binaryPath: options.binaryPath });
+    const next = replaceManagedBlock(existing ?? "", block);
+    if (next !== existing) {
+      this.writeHookFile(hooks.commitMsgPath, next);
+    }
+    return { strategy: "composed", hookPath: hooks.commitMsgPath, created: false };
   }
 
   async removeOwned(repo: GitRepositoryContext, options: HookInstallOptions): Promise<boolean> {
+    const result = await this.remove(repo, options);
+    return result.mode === "owned-file";
+  }
+
+  async remove(repo: GitRepositoryContext, options: HookInstallOptions): Promise<HookRemoveResult> {
     const hooks = await this.git.resolveHooks(repo);
+    const pathClass = classifyHooksPath(repo, hooks);
     const existing = await this.readHookFile(hooks.commitMsgPath);
     if (existing === null) {
-      return false;
+      return { removed: false, mode: "none", hookPath: hooks.commitMsgPath };
     }
 
-    // Verify before delete: only remove a file that exactly matches the
-    // owned structure we would generate (architecture invariant 17).
-    const expected = generateOwnedHookScript({ binaryPath: options.binaryPath });
-    if (existing !== expected) {
-      return false;
+    const analysis = analyzeCommitMsgHook(existing);
+
+    if (pathClass === "shared-external") {
+      return { removed: false, mode: "skipped-shared", hookPath: hooks.commitMsgPath };
     }
 
-    rmSync(hooks.commitMsgPath, { force: true });
-    return true;
+    if (analysis.status === "owned") {
+      const expected = generateOwnedHookScript({ binaryPath: options.binaryPath });
+      if (existing !== expected) {
+        return { removed: false, mode: "none", hookPath: hooks.commitMsgPath };
+      }
+      rmSync(hooks.commitMsgPath, { force: true });
+      return { removed: true, mode: "owned-file", hookPath: hooks.commitMsgPath };
+    }
+
+    if (analysis.status === "managed-block") {
+      const stripped = stripManagedBlock(existing);
+      this.writeHookFile(hooks.commitMsgPath, stripped.endsWith("\n") ? stripped : `${stripped}\n`);
+      return { removed: true, mode: "stripped-block", hookPath: hooks.commitMsgPath };
+    }
+
+    return { removed: false, mode: "none", hookPath: hooks.commitMsgPath };
+  }
+
+  private async composeInto(
+    repo: GitRepositoryContext,
+    hookPath: string,
+    original: string,
+    binaryPath: string | null,
+  ): Promise<HookInstallResult> {
+    const sha = createHash("sha256").update(original).digest("hex");
+    const backupDir = await this.metadata.resolveBackupDir(repo);
+    mkdirSync(backupDir, { recursive: true });
+    const backupPath = join(backupDir, `commit-msg.${sha.slice(0, 16)}.bak`);
+    this.writeHookFile(backupPath, original);
+
+    const block = generateManagedBlock({ binaryPath });
+    const composed = insertManagedBlockAfterShebang(original, block);
+    this.writeHookFile(hookPath, composed);
+
+    await this.metadata.write(repo, {
+      hookPath,
+      capturedBinaryPath: binaryPath,
+      strategy: "composed",
+      originalSha256: sha,
+      backupPath,
+    });
+
+    return { strategy: "composed", hookPath, created: false, backupPath };
   }
 
   private async readHookFile(path: string): Promise<string | null> {
@@ -107,11 +257,6 @@ export class HookManager implements HookManagerPort {
     return await file.text();
   }
 
-  /**
-   * Writes the hook atomically (temp file + rename) with the executable
-   * bit set before the rename, so Git never sees a partial or non-
-   * executable hook.
-   */
   private writeHookFile(path: string, content: string): void {
     mkdirSync(this.dirname(path), { recursive: true });
     const temp = `${path}.jiraflow-tmp-${process.pid}-${Date.now()}`;

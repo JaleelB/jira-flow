@@ -114,21 +114,23 @@ function Field({
 function integrationLabel(status: RepositoryStatusView): string {
   switch (status.integration.status) {
     case "owned":
+    case "managed-block":
       return "Healthy";
     case "missing":
       return "Missing";
-    case "conflict":
-      return "Conflict";
+    default:
+      return status.integration.status;
   }
 }
 
 function integrationTone(status: RepositoryStatusView): "ok" | "warn" | "fail" {
   switch (status.integration.status) {
     case "owned":
+    case "managed-block":
       return "ok";
     case "missing":
       return "warn";
-    case "conflict":
+    default:
       return "fail";
   }
 }

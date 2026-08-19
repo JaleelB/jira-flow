@@ -17,6 +17,11 @@ export function containsManagedBlock(content: string): boolean {
   return content.includes(BEGIN_MARKER) && content.includes(END_MARKER);
 }
 
+/** True when any JiraFlow managed-block marker fragment is present. */
+export function hasJiraflowMarkerTrace(content: string): boolean {
+  return content.includes("jiraflow managed block");
+}
+
 /** Number of managed-block begin markers found in the content. */
 export function countManagedBlocks(content: string): number {
   return content.split(BEGIN_MARKER).length - 1;
