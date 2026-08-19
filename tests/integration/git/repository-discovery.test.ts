@@ -1,10 +1,11 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { BareRepositoryUnsupportedError, NotAGitRepositoryError } from "../../../src/domain/errors";
 import { GitAdapter } from "../../../src/infrastructure/git/git-adapter";
 import { GitRunner } from "../../../src/infrastructure/git/git-runner";
+import { classifyHooksPath } from "../../../src/infrastructure/hooks/hook-path-classification";
 import {
   createTempGitRepository,
   createTempNonGitDirectory,
@@ -53,6 +54,25 @@ describe("repository discovery", () => {
 
     const context = await adapter.discoverRepository(nested);
     expect(context.root).toBe(repo.root);
+  });
+
+  test("path with spaces: discovers root and default hooks dir", async () => {
+    const parent = mkdtempSync(join(tmpdir(), "jiraflow space parent-"));
+    scratch.push(() => rmSync(parent, { recursive: true, force: true }));
+    const spacedRoot = join(parent, "my repo");
+    mkdirSync(spacedRoot);
+
+    const init = Bun.spawnSync(["git", "init", "-b", "main", spacedRoot], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(init.exitCode).toBe(0);
+
+    const adapter = new GitAdapter(new GitRunner());
+    const context = await adapter.discoverRepository(spacedRoot);
+    expect(context.root).toBe(spacedRoot);
+    const hooks = await adapter.resolveHooks(context);
+    expect(hooks.commitMsgPath).toBe(join(spacedRoot, ".git", "hooks", "commit-msg"));
   });
 
   test("non-repo path raises typed NOT_A_GIT_REPOSITORY", async () => {
@@ -150,5 +170,69 @@ describe("hooks resolution", () => {
     const context = await adapter.discoverRepository(repo.root);
     const hooks = await adapter.resolveHooks(context);
     expect(hooks.hooksDir).toBe(join(repo.root, "team-hooks"));
+  });
+
+  test("absolute local core.hooksPath is honored", async () => {
+    const repo = createTempGitRepository();
+    repos.push(repo);
+    const customHooks = join(repo.root, "abs-hooks");
+    await repo.runOk(["config", "--local", "core.hooksPath", customHooks]);
+    const adapter = adapterFor(repo);
+    const context = await adapter.discoverRepository(repo.root);
+    const hooks = await adapter.resolveHooks(context);
+    expect(hooks.hooksDir).toBe(customHooks);
+    expect(hooks.hooksPathOrigin).toBe("local");
+  });
+});
+
+describe("remote URL", () => {
+  test("no remote is valid and returns null", async () => {
+    const repo = createTempGitRepository();
+    repos.push(repo);
+    const adapter = adapterFor(repo);
+    const context = await adapter.discoverRepository(repo.root);
+    expect(await adapter.getRemoteUrl(context)).toBeNull();
+  });
+
+  test("origin URL is returned when present", async () => {
+    const repo = createTempGitRepository();
+    repos.push(repo);
+    await repo.runOk(["remote", "add", "origin", "https://example.test/repo.git"]);
+    const adapter = adapterFor(repo);
+    const context = await adapter.discoverRepository(repo.root);
+    expect(await adapter.getRemoteUrl(context)).toBe("https://example.test/repo.git");
+  });
+});
+
+describe("hooksPath classification", () => {
+  test("default hooks dir is repo-default", async () => {
+    const repo = createTempGitRepository();
+    repos.push(repo);
+    const adapter = adapterFor(repo);
+    const context = await adapter.discoverRepository(repo.root);
+    const hooks = await adapter.resolveHooks(context);
+    expect(classifyHooksPath(context, hooks)).toBe("repo-default");
+  });
+
+  test("relative local core.hooksPath inside the repo is repo-local-custom", async () => {
+    const repo = createTempGitRepository();
+    repos.push(repo);
+    await repo.runOk(["config", "--local", "core.hooksPath", "team-hooks"]);
+    const adapter = adapterFor(repo);
+    const context = await adapter.discoverRepository(repo.root);
+    const hooks = await adapter.resolveHooks(context);
+    expect(classifyHooksPath(context, hooks)).toBe("repo-local-custom");
+  });
+
+  test("absolute core.hooksPath outside the repo is shared-external", async () => {
+    const repo = createTempGitRepository();
+    repos.push(repo);
+    const shared = mkdtempSync(join(tmpdir(), "jiraflow-shared-hooks-"));
+    scratch.push(() => rmSync(shared, { recursive: true, force: true }));
+    await repo.runOk(["config", "--local", "core.hooksPath", shared]);
+    const adapter = adapterFor(repo);
+    const context = await adapter.discoverRepository(repo.root);
+    const hooks = await adapter.resolveHooks(context);
+    expect(classifyHooksPath(context, hooks)).toBe("shared-external");
   });
 });
