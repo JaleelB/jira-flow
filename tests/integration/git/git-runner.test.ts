@@ -1,4 +1,6 @@
 import { afterAll, describe, expect, test } from "bun:test";
+import { join } from "node:path";
+import { GitTimeoutError, GitUnavailableError } from "../../../src/domain/errors";
 import { GitRunner } from "../../../src/infrastructure/git/git-runner";
 import {
   createTempGitRepository,
@@ -100,5 +102,25 @@ describe("GitRunner", () => {
     });
     expect(result.exitCode).toBe(0);
     expect(result.stdout.trim()).toHaveLength(40);
+  });
+
+  test("missing executable raises GitUnavailableError", async () => {
+    const runner = new GitRunner({ executable: "/nonexistent/jiraflow-missing-git" });
+    expect(runner.run({ cwd: "/tmp", args: ["--version"] })).rejects.toBeInstanceOf(
+      GitUnavailableError,
+    );
+  });
+
+  test("timeout raises GitTimeoutError, not GitUnavailableError", async () => {
+    const fixture = join(import.meta.dir, "..", "..", "fixtures", "slow-git.sh");
+    const runner = new GitRunner({ executable: fixture, timeoutMs: 80 });
+    let caught: unknown;
+    try {
+      await runner.run({ cwd: "/tmp", args: ["status"] });
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(GitTimeoutError);
+    expect(caught).not.toBeInstanceOf(GitUnavailableError);
   });
 });

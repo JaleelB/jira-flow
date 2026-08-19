@@ -146,6 +146,16 @@ export class GitUnavailableError extends JiraFlowError {
   }
 }
 
+/** A Git invocation exceeded its timeout and was killed. */
+export class GitTimeoutError extends JiraFlowError {
+  readonly code = "GIT_TIMEOUT";
+  readonly exitCode = 1;
+
+  constructor(detail: string) {
+    super(`Git timed out: ${detail}`);
+  }
+}
+
 /** A worktree state file exists but cannot be parsed. Recoverable. */
 export class WorktreeStateInvalidError extends JiraFlowError {
   readonly code = "WORKTREE_STATE_INVALID";
