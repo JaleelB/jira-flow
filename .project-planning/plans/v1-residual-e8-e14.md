@@ -96,8 +96,8 @@ Frozen invariants: one binary; Git CLI authority; Git-local repo configuration; 
 | Exact legacy signatures only | ADR-0005, E11 | T-11 | legacy analyzer/migrator | frozen fixtures + refusal matrix | Verified |
 | One native binary and safe package install | ADR-0001, ADR-0007, E12 | T-12 | package scripts/packages/ADR-0009 | package/install/archive smoke | Verified |
 | Version-safe OIDC release automation | ADR-0008, E13 | T-13 | `.github/**`, release config | workflow/static/version tests | Verified |
-| Tested docs and safety/release evidence | E14 | T-14 | README/docs/reviews/checklist | doc audit + full gate | Planned |
-| Tests never touch developer state | DR-0015 | T-08-T-14 | `tests/helpers/**` | isolated env assertions | Planned |
+| Tested docs and safety/release evidence | E14 | T-14 | README/docs/reviews/checklist | doc audit + full gate | Verified |
+| Tests never touch developer state | DR-0015 | T-08-T-14 | `tests/helpers/**` | isolated env assertions | Verified |
 | Hook/migration rollback is ownership-safe | ADR-0005, DR-0016 | T-11, T-14 | hook/migration use cases | byte-preservation fixtures | Verified |
 
 All Required obligations are mapped to implementation and verification.
@@ -261,6 +261,6 @@ None blocking. Packaging strategy is deliberately resolved by T-12 evidence, not
 - [x] T-09 E9/PR-title — 253-test full gate, typecheck, lint, compiled build
 - [x] T-10 E10/OpenTUI and M3 gate — S1-S14 render/reducer/facade coverage; full 258-test gate, typecheck, lint, compiled build
 - [x] T-11 E11/migration — exact v0.5 wrappers/symlinks only; 272-test full gate and compiled real-commit migration
-- [ ] T-12 E12/packaging and M4 gate
-- [ ] T-13 E13/CI-release
-- [ ] T-14 E14/hardening and M5-M7 local gates
+- [x] T-12 E12/packaging and M4 gate — six target builds/archives/checksums; local npm/pnpm/Bun Linux smoke; M4 DR-0021
+- [x] T-13 E13/CI-release — split CI/package workflows, Release Please, protected OIDC publish, exact-version gates; M5 DR-0022
+- [x] T-14 E14/hardening and M6/M7 local gates — 285-test full gate, docs contract, safety/performance reviews, final six-target artifacts and local package-manager smoke; DR-0024/0025

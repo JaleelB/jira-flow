@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "scenario": "compiled Hybrid footer git commit including hook overhead",
   "samples": 5,
-  "elapsedMs": [200.46, 203.72, 204.65, 226.94, 227.06],
-  "medianMs": 204.65,
+  "elapsedMs": [237.59, 244.03, 299.54, 341.91, 361.86],
+  "medianMs": 299.54,
   "binary": "dist/jira-flow",
-  "recordedAt": "2026-08-23T19:30:29.419Z",
+  "recordedAt": "2026-08-23T20:33:24.127Z",
   "note": "Observational baseline only (DR-0019). Not a CI fail gate."
 }
