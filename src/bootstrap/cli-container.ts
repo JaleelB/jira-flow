@@ -1,5 +1,6 @@
 import type { ControlPlaneRegistryPort } from "../application/ports/registry.port";
 import type { SettingsPort } from "../application/ports/settings.port";
+import { GeneratePrTitle } from "../application/use-cases/generate-pr-title";
 import { GetRepositoryStatus } from "../application/use-cases/get-repository-status";
 import { InitializeRepository } from "../application/use-cases/initialize-repository";
 import { LinkIssue } from "../application/use-cases/link-issue";
@@ -20,7 +21,9 @@ import { GitRunner } from "../infrastructure/git/git-runner";
 import { HookManager } from "../infrastructure/hooks/hook-manager";
 import { IntegrationMetadataStore } from "../infrastructure/hooks/integration-metadata";
 import { getAppDataDir, getDatabasePath } from "../infrastructure/platform/app-paths";
+import { SystemClipboard } from "../infrastructure/platform/clipboard";
 import { resolveCurrentExecutable } from "../infrastructure/platform/executable-path";
+import { TerminalStoryTitlePrompt } from "../infrastructure/platform/terminal-story-title-prompt";
 import { SqliteIssueMetadataRepository } from "../infrastructure/sqlite/issue-metadata-repository";
 import { SqliteRepositoryRegistry } from "../infrastructure/sqlite/repository-registry";
 import { SqliteSettingsRepository } from "../infrastructure/sqlite/settings-repository";
@@ -129,6 +132,7 @@ export interface CliContainer {
   manageRepositoryRegistry: ManageRepositoryRegistry;
   settings: SettingsPort;
   issueMetadata: SqliteIssueMetadataRepository;
+  generatePrTitle: GeneratePrTitle;
 }
 
 export function createCliContainer(
@@ -187,7 +191,7 @@ export function createCliContainer(
     captureBinaryPath,
   });
   const processCommitMessage = new ProcessCommitMessage({ git, config, state, filesystem });
-  const linkIssue = new LinkIssue({ git, config, state });
+  const linkIssue = new LinkIssue({ git, config, state, registry, metadata: issueMetadata });
   const unlinkIssue = new UnlinkIssue({ git, config, state });
   const setMode = new SetMode({ git, config });
   const setEnabled = new SetEnabled({ git, config });
@@ -202,6 +206,16 @@ export function createCliContainer(
   });
   const manageConfig = new ManageConfig({ git, config, settings });
   const manageRepositoryRegistry = new ManageRepositoryRegistry({ registry, git, config });
+  const generatePrTitle = new GeneratePrTitle({
+    git,
+    config,
+    status: getRepositoryStatus,
+    registry,
+    metadata: issueMetadata,
+    settings,
+    clipboard: new SystemClipboard(),
+    prompt: new TerminalStoryTitlePrompt(),
+  });
 
   return {
     initializeRepository,
@@ -219,5 +233,6 @@ export function createCliContainer(
     manageRepositoryRegistry,
     settings,
     issueMetadata,
+    generatePrTitle,
   };
 }

@@ -128,11 +128,11 @@ describe("link / unlink / mode / enable / disable / config / remove", () => {
     expect(global.stdout).toContain("defaultMode=hybrid");
   });
 
-  test("link has no --title option", async () => {
+  test("link accepts --title for the local issue metadata cache", async () => {
     const { repo, dataDir } = await makeRepo();
     await runCli(["init", "--yes"], repo, dataDir);
-    const result = await runCli(["link", "--title", "ignored", "ABC-123"], repo, dataDir);
-    expect(result.exitCode).toBe(2);
+    const result = await runCli(["link", "--title", "Cached title", "ABC-123"], repo, dataDir);
+    expect(result.exitCode).toBe(0);
   });
 
   test("remove --yes deletes owned integration; without --yes exits 2", async () => {

@@ -225,3 +225,25 @@ export class FileSystemError extends JiraFlowError {
   readonly code = "FILESYSTEM_ERROR";
   readonly exitCode = 1;
 }
+
+export class NoActiveIssueError extends JiraFlowError {
+  readonly code = "NO_ACTIVE_ISSUE";
+  readonly exitCode = 3;
+
+  constructor() {
+    super(
+      "No active Jira issue is available for PR-title generation. Link an issue or use a ticket branch.",
+    );
+  }
+}
+
+export class StoryTitleRequiredError extends JiraFlowError {
+  readonly code = "STORY_TITLE_REQUIRED";
+  readonly exitCode = 2;
+
+  constructor(jiraKey: string) {
+    super(
+      `A story title is required for ${jiraKey}. Pass --title or run in an interactive terminal.`,
+    );
+  }
+}

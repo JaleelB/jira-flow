@@ -10,9 +10,15 @@ export function registerLinkCommands(
     .command("link")
     .description("link the current worktree to a Jira issue")
     .argument("<issue>", "Jira issue key")
-    .action(async (issue: string) => {
-      const result = await services.linkIssue.execute({ path: process.cwd(), issue });
+    .option("--title <story-title>", "cache a local story title for PR-title generation")
+    .action(async (issue: string, options: { title?: string }) => {
+      const result = await services.linkIssue.execute({
+        path: process.cwd(),
+        issue,
+        title: options.title,
+      });
       process.stdout.write(`Linked ${result.key} (${result.mode})\n`);
+      if (result.metadataWarning) process.stderr.write(`Warning: ${result.metadataWarning}\n`);
     });
 
   program
