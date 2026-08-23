@@ -34,6 +34,8 @@ export async function runTui(options: { path?: string; startSetup?: boolean } = 
     setGlobalSetting: (key, value) => container.settings.set(key, value as never),
     locateRepository: (input) => container.manageRepositoryRegistry.locate(input),
     forgetRepository: (input) => container.manageRepositoryRegistry.remove(input),
+    inspectLegacyRepository: (input) => container.inspectLegacyRepository.execute(input),
+    migrateLegacyRepository: (input) => container.migrateLegacyRepository.execute(input),
   };
 
   const initialContext = await container.getStartupContext.execute({

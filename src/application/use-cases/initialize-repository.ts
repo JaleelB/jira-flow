@@ -1,4 +1,8 @@
-import { HookConflictError, HookUnsafeToModifyError } from "../../domain/errors";
+import {
+  HookConflictError,
+  HookUnsafeToModifyError,
+  LegacyMigrationRequiredError,
+} from "../../domain/errors";
 import type { LinkingMode } from "../../domain/linking-mode";
 import type { GitPort, GitRepositoryContext } from "../ports/git.port";
 import type { HookInstallResult, HookManagerPort } from "../ports/hooks.port";
@@ -6,6 +10,7 @@ import type { RegistryPort } from "../ports/registry.port";
 import type { RepoConfigPort } from "../ports/repo-config.port";
 import type { SettingsPort } from "../ports/settings.port";
 import type { WorktreeStatePort } from "../ports/worktree-state.port";
+import type { InspectLegacyRepository } from "./inspect-legacy-repository";
 
 /**
  * `initializeRepository` — architecture §19 initialization transaction with
@@ -61,6 +66,7 @@ export interface InitializeRepositoryDeps {
   /** Supplies the compiled binary path captured into the hook shim. */
   captureBinaryPath: () => string | null;
   settings?: SettingsPort;
+  legacy?: InspectLegacyRepository;
 }
 
 export interface InitializeRepositoryInput {
@@ -87,6 +93,9 @@ export class InitializeRepository {
 
   async execute(input: InitializeRepositoryInput): Promise<InitializeRepositoryResult> {
     const repo = await this.deps.git.discoverRepository(input.path);
+
+    const legacy = await this.deps.legacy?.execute({ repo });
+    if (legacy?.detected) throw new LegacyMigrationRequiredError();
 
     // 1. Inspect the hook BEFORE any mutation: a conflict must leave the
     //    repository completely untouched.

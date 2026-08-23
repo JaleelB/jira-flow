@@ -4,6 +4,7 @@ import type { DoctorResult } from "../../application/models/doctor-result";
 import type { RepositoryListView } from "../../application/models/repository-summary";
 import type { RepositoryStatusView } from "../../application/models/status-view";
 import type { GlobalSettings } from "../../application/ports/settings.port";
+import type { LegacyInspection } from "../../application/use-cases/inspect-legacy-repository";
 import type { ManageConfig } from "../../application/use-cases/manage-config";
 import { palette } from "../../ui/theme";
 import type { TuiServices } from "../app-context";
@@ -17,6 +18,7 @@ type RouteData =
   | DoctorResult
   | GlobalSettings
   | Awaited<ReturnType<ManageConfig["execute"]>>
+  | LegacyInspection
   | null;
 
 export function ManagementScreen({
@@ -132,8 +134,16 @@ export function ManagementScreen({
           type: "push",
           route: { name: "setup-customization", repoPath: route.repoPath },
         });
-      if (name === "return" || name === "enter")
-        void initialize(route.repoPath, mode, services, dispatch, mutate);
+      if (name === "return" || name === "enter") {
+        const legacy = readyData<LegacyInspection>(view);
+        if (legacy?.detected && !legacy.eligible) {
+          setNotice(`Migration blocked: ${legacy.ambiguousPaths.join(", ")}`);
+        } else if (legacy?.eligible) {
+          void migrateLegacy(route.repoPath, services, dispatch, mutate);
+        } else {
+          void initialize(route.repoPath, mode, services, dispatch, mutate);
+        }
+      }
     } else if (route.name === "setup-customization") {
       if (name === "1") setMode("hybrid");
       if (name === "2") setMode("branch");
@@ -308,6 +318,8 @@ async function loadRouteData(route: TuiRoute, services: TuiServices): Promise<Ro
   switch (route.name) {
     case "global-dashboard":
       return services.listRepositories({ refresh: true });
+    case "setup":
+      return services.inspectLegacyRepository({ path: route.repoPath });
     case "repository-overview":
     case "link-issue":
     case "mode-selection":
@@ -342,6 +354,16 @@ function renderData(view: ReturnType<typeof useScreenData<RouteData>>["view"]): 
           (repo) =>
             `${repo.displayName.padEnd(18)} ${(repo.mode ?? "—").padEnd(8)} ${(repo.activeIssue ?? "—").padEnd(12)} ${repo.health}`,
         );
+  if ("legacyHooks" in data)
+    return data.detected
+      ? [
+          "Legacy JiraFlow v0.5 integration detected.",
+          ...data.changes.map((change) => `• ${change}`),
+          ...(data.ambiguousPaths.length > 0
+            ? data.ambiguousPaths.map((path) => `Cannot prove ownership: ${path}`)
+            : []),
+        ]
+      : [];
   if ("checks" in data)
     return [
       `Overall: ${data.overall}`,
@@ -414,6 +436,18 @@ async function initializeCustomized(
     for (const [key, value] of Object.entries(overrides)) {
       await services.manageConfig({ path, action: "set", key, value });
     }
+    dispatch({ type: "replace", route: { name: "repository-overview", repoPath: path } });
+  });
+}
+
+async function migrateLegacy(
+  path: string,
+  services: TuiServices,
+  dispatch: (action: NavigationAction) => void,
+  mutate: (action: () => Promise<void>) => Promise<void>,
+) {
+  await mutate(async () => {
+    await services.migrateLegacyRepository({ path });
     dispatch({ type: "replace", route: { name: "repository-overview", repoPath: path } });
   });
 }

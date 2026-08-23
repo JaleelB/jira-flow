@@ -49,6 +49,7 @@ async function main(): Promise<number> {
   const { registerConfigCommand } = await import("./cli/commands/config");
   const { registerRepositoriesCommand } = await import("./cli/commands/repositories");
   const { registerPrTitleCommand } = await import("./cli/commands/pr-title");
+  const { registerMigrateCommand } = await import("./cli/commands/migrate");
   const container = createCliContainer();
   const program = buildProgram();
   registerInitCommand(program, container, async (path) => {
@@ -63,6 +64,7 @@ async function main(): Promise<number> {
   registerConfigCommand(program, container);
   registerRepositoriesCommand(program, container);
   registerPrTitleCommand(program, container);
+  registerMigrateCommand(program, container);
   return parseProgram(program);
 }
 

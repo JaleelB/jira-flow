@@ -13,6 +13,7 @@ import type { RepoConfigPort } from "../ports/repo-config.port";
 import type { SettingsPort } from "../ports/settings.port";
 import type { WorktreeStatePort } from "../ports/worktree-state.port";
 import { computeEffectiveConfig } from "../services/effective-config";
+import type { InspectLegacyRepository } from "./inspect-legacy-repository";
 import type { ListRepositories } from "./list-repositories";
 
 export interface RunDoctorDeps {
@@ -24,6 +25,7 @@ export interface RunDoctorDeps {
   captureBinaryPath?: () => string | null;
   settings?: SettingsPort;
   listRepositories?: ListRepositories;
+  legacy?: InspectLegacyRepository;
 }
 
 export interface RunDoctorInput {
@@ -125,6 +127,20 @@ export class RunDoctor {
       status: "pass",
       detail: `${hooksCtx.hooksDir} (${hooksCtx.hooksPathOrigin})`,
     });
+
+    const legacy = await this.deps.legacy?.execute({ repo });
+    if (legacy?.detected) {
+      checks.push({
+        id: "legacy.v0.5",
+        status: legacy.eligible ? "warning" : "fail",
+        detail: legacy.eligible
+          ? "recognized JiraFlow v0.5 integration; run `jira-flow migrate`"
+          : `legacy-like hooks are ambiguous: ${legacy.ambiguousPaths.join(", ")}`,
+        repairHint: legacy.eligible ? "jira-flow migrate" : undefined,
+      });
+    } else {
+      checks.push({ id: "legacy.v0.5", status: "pass", detail: "not detected" });
+    }
 
     const inspection = await this.deps.hooks.inspect(repo);
     if (inspection.status === "owned" || inspection.status === "managed-block") {

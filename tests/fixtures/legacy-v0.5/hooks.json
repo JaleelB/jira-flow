@@ -1,0 +1,7 @@
+{
+  "source": "git tag v0.5.0, internal/git.go generateHookScript",
+  "commitMsg": "#!/bin/sh\n/usr/local/bin/commitmsg \"$@\"",
+  "postCheckout": "#!/bin/sh\n/usr/local/bin/postco \"$@\"",
+  "windowsCommitMsg": "#!/bin/sh\n\"C:\\\\Users\\\\dev\\\\bin\\\\commitmsg.exe\" \"$@\"",
+  "windowsPostCheckout": "#!/bin/sh\n\"C:\\\\Users\\\\dev\\\\bin\\\\postco.exe\" \"$@\""
+}

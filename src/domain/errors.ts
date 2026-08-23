@@ -190,13 +190,44 @@ export class InteractiveTerminalRequiredError extends JiraFlowError {
   }
 }
 
+export class LegacyMigrationRequiredError extends JiraFlowError {
+  readonly code = "LEGACY_MIGRATION_REQUIRED";
+  readonly exitCode = 4;
+
+  constructor() {
+    super(
+      "JiraFlow v0.5 integration detected. Run `jira-flow migrate` to review and migrate it safely.",
+    );
+  }
+}
+
+export class LegacyHookAmbiguousError extends JiraFlowError {
+  readonly code = "LEGACY_HOOK_AMBIGUOUS";
+  readonly exitCode = 4;
+
+  constructor(paths: string[]) {
+    super(
+      `Legacy migration cannot prove ownership of: ${paths.join(", ")}. No hooks were changed.`,
+    );
+  }
+}
+
+export class LegacyMigrationNotNeededError extends JiraFlowError {
+  readonly code = "LEGACY_MIGRATION_NOT_NEEDED";
+  readonly exitCode = 2;
+
+  constructor() {
+    super("No recognized JiraFlow v0.5 integration was found in this repository.");
+  }
+}
+
 /** A destructive command needs `--yes` when stdin is not a TTY. */
 export class ConfirmationRequiredError extends JiraFlowError {
   readonly code = "CONFIRMATION_REQUIRED";
   readonly exitCode = 2;
 
   constructor(command: string) {
-    super(`Refusing to run \`${command}\` without --yes (no interactive confirmation in M2).`);
+    super(`Refusing to run \`${command}\` without --yes because input is not interactive.`);
   }
 }
 

@@ -5,7 +5,9 @@ import type { RepositoryStatusView } from "../application/models/status-view";
 import type { GlobalSettings } from "../application/ports/settings.port";
 import type { GeneratedPrTitle } from "../application/use-cases/generate-pr-title";
 import type { StartupContext } from "../application/use-cases/get-startup-context";
+import type { LegacyInspection } from "../application/use-cases/inspect-legacy-repository";
 import type { ManageConfig } from "../application/use-cases/manage-config";
+import type { LegacyMigrationResult } from "../application/use-cases/migrate-legacy-repository";
 
 /**
  * TUI service facade (architecture §27).
@@ -50,6 +52,8 @@ export interface TuiServices {
   ): Promise<void>;
   locateRepository(input: { id: string; path: string }): Promise<void>;
   forgetRepository(input: { id: string }): Promise<boolean>;
+  inspectLegacyRepository(input: { path: string }): Promise<LegacyInspection>;
+  migrateLegacyRepository(input: { path: string }): Promise<LegacyMigrationResult>;
 }
 
 export const TuiServicesContext = createContext<TuiServices | null>(null);

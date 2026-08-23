@@ -101,6 +101,30 @@ const services: TuiServices = {
   setGlobalSetting: async () => {},
   locateRepository: async () => {},
   forgetRepository: async () => true,
+  inspectLegacyRepository: async ({ path }) => ({
+    repoPath: path,
+    hooksDir: `${path}/.git/hooks`,
+    detected: false,
+    eligible: false,
+    defaultMode: "hybrid",
+    changes: [],
+    legacyHooks: [],
+    ambiguousPaths: [],
+    snapshot: {
+      hooksDir: `${path}/.git/hooks`,
+      hooks: { "commit-msg": { kind: "missing" }, "post-checkout": { kind: "missing" } },
+    },
+  }),
+  migrateLegacyRepository: async ({ path }) => ({
+    repoPath: path,
+    removedLegacyHooks: ["commit-msg", "post-checkout"],
+    mode: "hybrid",
+    initialization: {
+      outcome: "initialized",
+      repoPath: path,
+      hook: { strategy: "owned", hookPath: `${path}/.git/hooks/commit-msg`, created: true },
+    },
+  }),
 };
 
 describe("complete TUI screen map", () => {

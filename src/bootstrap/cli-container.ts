@@ -4,10 +4,12 @@ import { GeneratePrTitle } from "../application/use-cases/generate-pr-title";
 import { GetRepositoryStatus } from "../application/use-cases/get-repository-status";
 import { GetStartupContext } from "../application/use-cases/get-startup-context";
 import { InitializeRepository } from "../application/use-cases/initialize-repository";
+import { InspectLegacyRepository } from "../application/use-cases/inspect-legacy-repository";
 import { LinkIssue } from "../application/use-cases/link-issue";
 import { ListRepositories } from "../application/use-cases/list-repositories";
 import { ManageConfig } from "../application/use-cases/manage-config";
 import { ManageRepositoryRegistry } from "../application/use-cases/manage-repository-registry";
+import { MigrateLegacyRepository } from "../application/use-cases/migrate-legacy-repository";
 import { ProcessCommitMessage } from "../application/use-cases/process-commit-message";
 import { RemoveRepository } from "../application/use-cases/remove-repository";
 import { RepairRepository } from "../application/use-cases/repair-repository";
@@ -21,6 +23,7 @@ import { GitConfigStore } from "../infrastructure/git/git-config-store";
 import { GitRunner } from "../infrastructure/git/git-runner";
 import { HookManager } from "../infrastructure/hooks/hook-manager";
 import { IntegrationMetadataStore } from "../infrastructure/hooks/integration-metadata";
+import { LegacyHookStore } from "../infrastructure/hooks/legacy-hook-store";
 import { getAppDataDir, getDatabasePath } from "../infrastructure/platform/app-paths";
 import { SystemClipboard } from "../infrastructure/platform/clipboard";
 import { resolveCurrentExecutable } from "../infrastructure/platform/executable-path";
@@ -135,6 +138,8 @@ export interface CliContainer {
   issueMetadata: SqliteIssueMetadataRepository;
   generatePrTitle: GeneratePrTitle;
   getStartupContext: GetStartupContext;
+  inspectLegacyRepository: InspectLegacyRepository;
+  migrateLegacyRepository: MigrateLegacyRepository;
 }
 
 export function createCliContainer(
@@ -146,6 +151,8 @@ export function createCliContainer(
   const state = new WorktreeStateStore(runner);
   const hooks = new HookManager(git, runner);
   const metadata = new IntegrationMetadataStore(runner);
+  const legacyHooks = new LegacyHookStore();
+  const inspectLegacyRepository = new InspectLegacyRepository({ git, legacyHooks });
   const filesystem = new SystemFilesystem();
 
   const captureBinaryPath = (): string | null => resolveCurrentExecutable().binaryPath;
@@ -169,6 +176,12 @@ export function createCliContainer(
     registry,
     captureBinaryPath,
     settings,
+    legacy: inspectLegacyRepository,
+  });
+  const migrateLegacyRepository = new MigrateLegacyRepository({
+    inspect: inspectLegacyRepository,
+    legacyHooks,
+    initialize: initializeRepository,
   });
 
   const getRepositoryStatus = new GetRepositoryStatus({ git, config, state, hooks });
@@ -183,6 +196,7 @@ export function createCliContainer(
     captureBinaryPath,
     settings,
     listRepositories,
+    legacy: inspectLegacyRepository,
   });
   const repairRepository = new RepairRepository({
     git,
@@ -238,5 +252,7 @@ export function createCliContainer(
     issueMetadata,
     generatePrTitle,
     getStartupContext,
+    inspectLegacyRepository,
+    migrateLegacyRepository,
   };
 }
