@@ -191,11 +191,11 @@ describe("jira-flow init --yes", () => {
     expect(config.exitCode).not.toBe(0);
   });
 
-  test("init without --yes explains interactive setup is deferred", async () => {
+  test("init without a TTY explains how to run interactive or headless setup", async () => {
     const { repo, dataDir } = await makeRepo();
     const result = await runCli(["init"], repo, dataDir);
     expect(result.exitCode).toBe(2);
-    expect(result.stderr).toContain("INTERACTIVE_SETUP_DEFERRED");
+    expect(result.stderr).toContain("INTERACTIVE_TERMINAL_REQUIRED");
     expect(result.stderr).toContain("init --yes");
   });
 

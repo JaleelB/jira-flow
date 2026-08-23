@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import type { InitializeRepository } from "../../application/use-cases/initialize-repository";
-import { ConfigInvalidError, InteractiveSetupDeferredError } from "../../domain/errors";
+import { ConfigInvalidError, InteractiveTerminalRequiredError } from "../../domain/errors";
 import { isLinkingMode } from "../../domain/linking-mode";
 import { formatInitializeResult } from "../output/human";
 
@@ -11,6 +11,7 @@ import { formatInitializeResult } from "../output/human";
 export function registerInitCommand(
   program: Command,
   services: { initializeRepository: InitializeRepository },
+  runInteractiveSetup?: (path: string) => Promise<void>,
 ): void {
   program
     .command("init")
@@ -31,7 +32,11 @@ export function registerInitCommand(
         },
       ) => {
         if (options.yes !== true) {
-          throw new InteractiveSetupDeferredError();
+          if (!process.stdin.isTTY || !runInteractiveSetup) {
+            throw new InteractiveTerminalRequiredError();
+          }
+          await runInteractiveSetup(path ?? process.cwd());
+          return;
         }
         if (options.mode !== undefined && !isLinkingMode(options.mode)) {
           throw new ConfigInvalidError("mode", options.mode);

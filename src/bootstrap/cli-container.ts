@@ -2,6 +2,7 @@ import type { ControlPlaneRegistryPort } from "../application/ports/registry.por
 import type { SettingsPort } from "../application/ports/settings.port";
 import { GeneratePrTitle } from "../application/use-cases/generate-pr-title";
 import { GetRepositoryStatus } from "../application/use-cases/get-repository-status";
+import { GetStartupContext } from "../application/use-cases/get-startup-context";
 import { InitializeRepository } from "../application/use-cases/initialize-repository";
 import { LinkIssue } from "../application/use-cases/link-issue";
 import { ListRepositories } from "../application/use-cases/list-repositories";
@@ -133,6 +134,7 @@ export interface CliContainer {
   settings: SettingsPort;
   issueMetadata: SqliteIssueMetadataRepository;
   generatePrTitle: GeneratePrTitle;
+  getStartupContext: GetStartupContext;
 }
 
 export function createCliContainer(
@@ -171,6 +173,7 @@ export function createCliContainer(
 
   const getRepositoryStatus = new GetRepositoryStatus({ git, config, state, hooks });
   const listRepositories = new ListRepositories({ registry, filesystem, getRepositoryStatus });
+  const getStartupContext = new GetStartupContext({ git, getRepositoryStatus, registry });
   const runDoctor = new RunDoctor({
     git,
     config,
@@ -234,5 +237,6 @@ export function createCliContainer(
     settings,
     issueMetadata,
     generatePrTitle,
+    getStartupContext,
   };
 }

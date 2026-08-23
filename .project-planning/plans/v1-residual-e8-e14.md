@@ -92,7 +92,7 @@ Frozen invariants: one binary; Git CLI authority; Git-local repo configuration; 
 | SQLite is disposable for commit behavior | ADR-0004, ADR-0006 | T-08 | `src/infrastructure/sqlite/**` | DB deletion + compiled commit | Verified |
 | Full control-plane schema/global precedence | Product §§12-20, E8 | T-08 | migrations, ports, use cases | migration/repository/settings tests | Verified |
 | Local-only PR titles and nonfatal clipboard | Product §15, E9 | T-09 | domain/use case/platform/CLI | unit + CLI + cache matrix | Verified |
-| TUI is a typed presentation adapter | ADR-0002, E10 | T-10 | `src/tui/**`, TUI facade | reducer/view-model/smoke tests | Planned |
+| TUI is a typed presentation adapter | ADR-0002, E10 | T-10 | `src/tui/**`, TUI facade | reducer/view-model/smoke tests | Verified |
 | Exact legacy signatures only | ADR-0005, E11 | T-11 | legacy analyzer/migrator | frozen fixtures + refusal matrix | Planned |
 | One native binary and safe package install | ADR-0001, ADR-0007, E12 | T-12 | package scripts/packages/ADR-0009 | package/install/archive smoke | Planned |
 | Version-safe OIDC release automation | ADR-0008, E13 | T-13 | `.github/**`, release config | workflow/static/version tests | Planned |
@@ -249,7 +249,7 @@ None blocking. Packaging strategy is deliberately resolved by T-12 evidence, not
 
 - [x] T-08 E8/control-plane — 243-test full gate, typecheck, lint, compiled build
 - [x] T-09 E9/PR-title — 253-test full gate, typecheck, lint, compiled build
-- [ ] T-10 E10/OpenTUI and M3 gate
+- [x] T-10 E10/OpenTUI and M3 gate — S1-S14 render/reducer/facade coverage; full 258-test gate, typecheck, lint, compiled build
 - [ ] T-11 E11/migration
 - [ ] T-12 E12/packaging and M4 gate
 - [ ] T-13 E13/CI-release

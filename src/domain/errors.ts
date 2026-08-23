@@ -178,14 +178,14 @@ export class LinkUnavailableInBranchModeError extends JiraFlowError {
   }
 }
 
-/** Interactive `init` is not available in M2. */
-export class InteractiveSetupDeferredError extends JiraFlowError {
-  readonly code = "INTERACTIVE_SETUP_DEFERRED";
+/** Interactive `init` needs a terminal capable of hosting the setup screen. */
+export class InteractiveTerminalRequiredError extends JiraFlowError {
+  readonly code = "INTERACTIVE_TERMINAL_REQUIRED";
   readonly exitCode = 2;
 
   constructor() {
     super(
-      "Interactive setup is not available yet. Initialize with `jira-flow init --yes` to accept safe defaults.",
+      "Interactive setup requires a terminal. Re-run in a TTY, or use `jira-flow init --yes` to accept safe defaults.",
     );
   }
 }

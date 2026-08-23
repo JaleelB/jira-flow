@@ -29,12 +29,12 @@ afterAll(() => {
   for (const repo of repos.splice(0)) repo.cleanup();
 });
 
-const noopServices: TuiServices = {
+const noopServices = {
   getStartupContext: async () => ({ kind: "empty-state" }),
   getRepositoryStatus: async () => {
     throw new Error("not expected in this test");
   },
-};
+} as unknown as TuiServices;
 
 async function makeStatusView() {
   const repo = createTempGitRepository({ initialBranch: "main" });
@@ -98,7 +98,7 @@ describe("RepositoryOverview", () => {
 });
 
 describe("App routing", () => {
-  test("unconfigured repo route renders the next-step stub", async () => {
+  test("unconfigured repo route renders setup navigation", async () => {
     const repo = createTempGitRepository();
     repos.push(repo);
     const setup = await testRender(
@@ -111,19 +111,21 @@ describe("App routing", () => {
     );
     await setup.waitForVisualIdle();
     const frame = setup.captureCharFrame();
-    expect(frame).toContain("not configured");
-    expect(frame).toContain("jira-flow init --yes");
+    expect(frame).toContain("S2 · JIRAFLOW");
+    expect(frame).toContain("Unconfigured Repository");
+    expect(frame).toContain("Set up JiraFlow");
     setup.renderer.destroy();
   });
 
-  test("empty state route renders the outside-repo stub", async () => {
+  test("empty state route renders the global empty state", async () => {
     const setup = await testRender(
       <App services={noopServices} initialContext={{ kind: "empty-state" }} onQuit={() => {}} />,
       { width: 64, height: 20 },
     );
     await setup.waitForVisualIdle();
     const frame = setup.captureCharFrame();
-    expect(frame).toContain("Not inside a Git repository");
+    expect(frame).toContain("S1 · JIRAFLOW");
+    expect(frame).toContain("No repositories are configured yet");
     setup.renderer.destroy();
   });
 });

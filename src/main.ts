@@ -51,7 +51,10 @@ async function main(): Promise<number> {
   const { registerPrTitleCommand } = await import("./cli/commands/pr-title");
   const container = createCliContainer();
   const program = buildProgram();
-  registerInitCommand(program, container);
+  registerInitCommand(program, container, async (path) => {
+    const { runTui } = await import("./tui/run-tui");
+    await runTui({ path, startSetup: true });
+  });
   registerStatusCommand(program, container);
   registerDoctorCommand(program, container);
   registerLinkCommands(program, container);
