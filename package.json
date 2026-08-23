@@ -1,9 +1,8 @@
 {
   "name": "jira-flow",
   "version": "1.0.0-alpha.0",
-  "private": true,
   "type": "module",
-  "description": "Link git commits with Jira issues. v1 TypeScript rewrite (unpublished development branch).",
+  "description": "Link Git commits and pull requests with Jira issues, locally.",
   "author": "Jaleel Bennett <jaleelcodes@gmail.com>",
   "homepage": "https://github.com/JaleelB/jira-flow",
   "repository": {
@@ -19,6 +18,10 @@
     "test": "bun test",
     "lint": "biome check .",
     "build": "bun run scripts/build.ts",
+    "build:native": "bun run scripts/build-native.ts",
+    "package:native": "bun run scripts/package-native.ts",
+    "package:release": "bun run scripts/package-release.ts",
+    "smoke:package": "bun run scripts/smoke-package.ts",
     "playground": "bun run scripts/playground.ts",
     "jf": "bun scripts/jf.ts"
   },
@@ -30,6 +33,22 @@
     "jira-flow"
   ],
   "license": "MIT",
+  "files": [
+    "npm/launcher.cjs",
+    "npm/platforms.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "bin": {
+    "jira-flow": "npm/launcher.cjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "dependencies": {
     "@opentui/core": "0.5.4",
     "@opentui/keymap": "0.5.4",

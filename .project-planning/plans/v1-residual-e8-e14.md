@@ -94,7 +94,7 @@ Frozen invariants: one binary; Git CLI authority; Git-local repo configuration; 
 | Local-only PR titles and nonfatal clipboard | Product §15, E9 | T-09 | domain/use case/platform/CLI | unit + CLI + cache matrix | Verified |
 | TUI is a typed presentation adapter | ADR-0002, E10 | T-10 | `src/tui/**`, TUI facade | reducer/view-model/smoke tests | Verified |
 | Exact legacy signatures only | ADR-0005, E11 | T-11 | legacy analyzer/migrator | frozen fixtures + refusal matrix | Verified |
-| One native binary and safe package install | ADR-0001, ADR-0007, E12 | T-12 | package scripts/packages/ADR-0009 | package/install/archive smoke | Planned |
+| One native binary and safe package install | ADR-0001, ADR-0007, E12 | T-12 | package scripts/packages/ADR-0009 | package/install/archive smoke | Verified |
 | Version-safe OIDC release automation | ADR-0008, E13 | T-13 | `.github/**`, release config | workflow/static/version tests | Planned |
 | Tested docs and safety/release evidence | E14 | T-14 | README/docs/reviews/checklist | doc audit + full gate | Planned |
 | Tests never touch developer state | DR-0015 | T-08-T-14 | `tests/helpers/**` | isolated env assertions | Planned |
@@ -173,7 +173,7 @@ Verification: frozen fixtures, byte preservation, exact owned removal, ambiguous
 
 ### T-12 — Native packaging and SPIKE-01
 
-Decisions: ADR-0001/0007 and Proposed ADR-0009.
+Decisions: ADR-0001/0007 and accepted ADR-0009.
 
 - Prototype optional platform packages and install-time resolver against npm/pnpm/Bun global layouts.
 - Select the safer strategy, mark ADR-0009 Accepted, and remove rejected prototype code.
@@ -181,6 +181,10 @@ Decisions: ADR-0001/0007 and Proposed ADR-0009.
 - Ensure install/uninstall never touches repositories and missing captured executables leave commits usable.
 
 Verification: local native Linux install/upgrade/uninstall, npm/pnpm/Bun globals, spaces, command resolution, package contents, no repo mutation, TUI startup; cross-target compilation and remote native-run matrix.
+
+Status: Verified locally. Six targets cross-compile with validated file formats,
+archives, and checksums; npm/pnpm/Bun Linux-x64 global smoke passes. Native
+macOS/Windows/ARM execution remains an explicit remote CI gate.
 
 ### T-13 — CI and release automation
 

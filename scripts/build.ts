@@ -40,6 +40,8 @@ const define = (key: string, value: string): string => `${key}=${JSON.stringify(
 const args = [
   "build",
   "--compile",
+  "--no-compile-autoload-dotenv",
+  "--no-compile-autoload-bunfig",
   join("src", "main.ts"),
   "--outfile",
   join("dist", "jira-flow"),
