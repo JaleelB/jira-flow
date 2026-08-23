@@ -51,7 +51,9 @@ describe("commit-msg overhead baseline (E5-5 / T-15)", () => {
       recordedAt: new Date().toISOString(),
       note: "Observational baseline only (DR-0019). Not a CI fail gate.",
     };
-    writeFileSync(BASELINE_PATH, `${JSON.stringify(record, null, 2)}\n`);
+    if (process.env.JIRAFLOW_RECORD_BASELINE === "1") {
+      writeFileSync(BASELINE_PATH, `${JSON.stringify(record, null, 2)}\n`);
+    }
 
     expect(samples.length).toBe(5);
     expect(await Bun.file(BASELINE_PATH).exists()).toBe(true);

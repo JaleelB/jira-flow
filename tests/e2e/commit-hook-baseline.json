@@ -2,13 +2,7 @@
   "schemaVersion": 1,
   "scenario": "compiled Hybrid footer git commit including hook overhead",
   "samples": 5,
-  "elapsedMs": [
-    200.46,
-    203.72,
-    204.65,
-    226.94,
-    227.06
-  ],
+  "elapsedMs": [200.46, 203.72, 204.65, 226.94, 227.06],
   "medianMs": 204.65,
   "binary": "dist/jira-flow",
   "recordedAt": "2026-08-23T19:30:29.419Z",
