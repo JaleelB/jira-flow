@@ -1,0 +1,50 @@
+name: Cross-platform integration
+
+on:
+  pull_request:
+  push:
+    branches: [main, rewrite/v1]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  real-git:
+    name: Real Git (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x64
+            os: ubuntu-latest
+          - name: macOS arm64
+            os: macos-15
+          - name: macOS x64
+            os: macos-15-intel
+          - name: Windows x64
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install locked dependencies
+        run: bun ci
+
+      - name: Run application, Git, hook, SQLite, and compiled E2E tests
+        run: bun test tests/application tests/integration tests/e2e
+
+      - name: Verify repository remains clean
+        shell: bash
+        run: test -z "$(git status --porcelain --untracked-files=no)"

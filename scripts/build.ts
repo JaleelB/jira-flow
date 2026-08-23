@@ -34,6 +34,7 @@ function run(command: string, args: string[]): GitValue | null {
 const version = packageJson.version;
 const commit = run("git", ["rev-parse", "--short", "HEAD"])?.value ?? "unknown";
 const buildDate = new Date().toISOString();
+const binaryName = process.platform === "win32" ? "jira-flow.exe" : "jira-flow";
 
 const define = (key: string, value: string): string => `${key}=${JSON.stringify(value)}`;
 
@@ -44,7 +45,7 @@ const args = [
   "--no-compile-autoload-bunfig",
   join("src", "main.ts"),
   "--outfile",
-  join("dist", "jira-flow"),
+  join("dist", binaryName),
   "--define",
   define("__JIRAFLOW_VERSION__", version),
   "--define",
@@ -66,4 +67,4 @@ if (proc.exitCode !== 0) {
   process.exit(proc.exitCode ?? 1);
 }
 
-console.log(`Built ${join("dist", "jira-flow")}`);
+console.log(`Built ${join("dist", binaryName)}`);

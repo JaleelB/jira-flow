@@ -200,7 +200,7 @@ describe("jira-flow init --yes", () => {
   });
 
   test("init outside a repository exits 3 with a concise error", async () => {
-    const result = await runCliAt(["init", "--yes"], "/tmp", {
+    const result = await runCliAt(["init", "--yes"], tmpdir(), {
       ...process.env,
       JIRAFLOW_DATA_DIR: makeDataDir(),
     });

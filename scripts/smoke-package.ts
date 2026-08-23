@@ -77,6 +77,7 @@ try {
     "hook did not decorate commit",
   );
   runCommand(installation.command, ["doctor", repo], installation.env);
+  await smokeTui(installation);
 
   upgrade(manager, installation);
   assert(
@@ -226,6 +227,39 @@ function withoutInstallationPath(installation: {
     .join(pathDelimiter());
 }
 
+async function smokeTui(installation: {
+  command: string;
+  env: Record<string, string | undefined>;
+}): Promise<void> {
+  if (process.platform !== "win32") {
+    runCommand(
+      "python3",
+      [join(import.meta.dir, "smoke-tui-pty.py"), installation.command],
+      installation.env,
+    );
+    return;
+  }
+
+  const child = Bun.spawn([installation.command], {
+    cwd: repo,
+    env: installation.env,
+    stdin: "pipe",
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const result = await Promise.race([
+    child.exited.then((exitCode) => ({ kind: "exit" as const, exitCode })),
+    Bun.sleep(2_000).then(() => ({ kind: "running" as const, exitCode: 0 })),
+  ]);
+  if (result.kind === "exit" && result.exitCode !== 0) {
+    throw new Error(`packaged Windows TUI exited during startup (${result.exitCode})`);
+  }
+  if (result.kind === "running") {
+    child.kill();
+    await child.exited;
+  }
+}
+
 function repositoryFingerprint(): string {
   const status = git(["status", "--porcelain=v1", "--untracked-files=all"]).stdout;
   const config = git(["config", "--local", "--list", "--show-origin"]).stdout;
@@ -262,13 +296,11 @@ function runCommand(
 }
 
 function packageVersion(): string {
-  const result = Bun.spawnSync(["tar", "-xOf", tarball, "package/package.json"], {
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  if (result.exitCode !== 0)
-    throw new Error(`cannot inspect ${tarball}: ${result.stderr.toString()}`);
-  return (JSON.parse(result.stdout.toString()) as { version: string }).version;
+  return (
+    JSON.parse(readFileSync(join(import.meta.dir, "..", "package.json"), "utf8")) as {
+      version: string;
+    }
+  ).version;
 }
 
 function pathDelimiter(): string {

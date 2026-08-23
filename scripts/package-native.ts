@@ -1,5 +1,6 @@
 import { chmodSync, copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { NATIVE_PLATFORMS, selectedNativeTargets } from "./native-platforms";
 
 const projectRoot = join(import.meta.dir, "..");
@@ -69,7 +70,7 @@ const optionalDependencies = local
         const platform = NATIVE_PLATFORMS[key];
         const tarball = nativeTarballs.get(key);
         if (!platform || !tarball) throw new Error(`missing local package for ${key}`);
-        return [platform.package, `file:${tarball}`];
+        return [platform.package, pathToFileURL(tarball).href];
       }),
     )
   : Object.fromEntries(

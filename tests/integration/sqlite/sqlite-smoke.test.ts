@@ -18,8 +18,9 @@ import { openSqliteDatabase } from "../../../src/infrastructure/sqlite/database"
 const tempDirs: string[] = [];
 const projectRoot = join(import.meta.dir, "..", "..", "..");
 const probeSource = join(projectRoot, "tests", "fixtures", "sqlite-probe.ts");
-const probeBinary = join(projectRoot, "dist", "sqlite-probe");
-const mainBinary = join(projectRoot, "dist", "jira-flow");
+const executableSuffix = process.platform === "win32" ? ".exe" : "";
+const probeBinary = join(projectRoot, "dist", `sqlite-probe${executableSuffix}`);
+const mainBinary = join(projectRoot, "dist", `jira-flow${executableSuffix}`);
 
 function makeTempDir(): string {
   const dir = mkdtempSync(join(tmpdir(), "jiraflow-sqlite-"));
@@ -93,7 +94,7 @@ describe("bun:sqlite inside a compiled executable", () => {
     const dbPath = join(dir, "probe.db");
 
     const proc = Bun.spawn([probeBinary, dbPath, "ABC-123"], {
-      cwd: "/tmp",
+      cwd: tmpdir(),
       stdout: "pipe",
       stderr: "pipe",
       env: { ...process.env },
@@ -117,7 +118,7 @@ describe("--version does not create the app database", () => {
     const dir = makeTempDir();
 
     const proc = Bun.spawn([mainBinary, "--version"], {
-      cwd: "/tmp",
+      cwd: tmpdir(),
       stdout: "pipe",
       stderr: "pipe",
       env: { ...process.env, JIRAFLOW_DATA_DIR: dir },

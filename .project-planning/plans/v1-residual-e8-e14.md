@@ -95,7 +95,7 @@ Frozen invariants: one binary; Git CLI authority; Git-local repo configuration; 
 | TUI is a typed presentation adapter | ADR-0002, E10 | T-10 | `src/tui/**`, TUI facade | reducer/view-model/smoke tests | Verified |
 | Exact legacy signatures only | ADR-0005, E11 | T-11 | legacy analyzer/migrator | frozen fixtures + refusal matrix | Verified |
 | One native binary and safe package install | ADR-0001, ADR-0007, E12 | T-12 | package scripts/packages/ADR-0009 | package/install/archive smoke | Verified |
-| Version-safe OIDC release automation | ADR-0008, E13 | T-13 | `.github/**`, release config | workflow/static/version tests | Planned |
+| Version-safe OIDC release automation | ADR-0008, E13 | T-13 | `.github/**`, release config | workflow/static/version tests | Verified |
 | Tested docs and safety/release evidence | E14 | T-14 | README/docs/reviews/checklist | doc audit + full gate | Planned |
 | Tests never touch developer state | DR-0015 | T-08-T-14 | `tests/helpers/**` | isolated env assertions | Planned |
 | Hook/migration rollback is ownership-safe | ADR-0005, DR-0016 | T-11, T-14 | hook/migration use cases | byte-preservation fixtures | Verified |
@@ -197,6 +197,12 @@ Decisions: ADR-0008 and accepted ADR-0009.
 - Add version consistency checks across package/tag/build/artifact/npm inputs.
 
 Verification: YAML/static checks, local workflow command parity, exact-version test, no obsolete Go/Changesets/GoReleaser paths.
+
+Status: Verified locally. Normal CI, four-target native integration, twelve-cell
+package smoke, Release Please PR-only automation, manual protected OIDC publish,
+artifact attestation, exact version/channel checks, and recoverable draft
+release sequencing are encoded. Remote workflow execution and npm trusted
+publisher authorization remain external gates.
 
 ### T-14 — Documentation, hardening, and release readiness
 

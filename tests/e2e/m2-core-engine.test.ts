@@ -41,9 +41,9 @@ describe("compiled M2 Core Engine Acceptance Gate", () => {
     const dataDir = makeDataDir();
     const env = { ...repo.env, JIRAFLOW_DATA_DIR: dataDir };
 
-    expect((await runCompiledJiraFlow(["--help"], { cwd: "/tmp" })).exitCode).toBe(0);
-    expect((await runCompiledJiraFlow(["--version"], { cwd: "/tmp" })).exitCode).toBe(0);
-    expect((await runCompiledJiraFlow(["not-a-command"], { cwd: "/tmp" })).exitCode).toBe(2);
+    expect((await runCompiledJiraFlow(["--help"], { cwd: tmpdir() })).exitCode).toBe(0);
+    expect((await runCompiledJiraFlow(["--version"], { cwd: tmpdir() })).exitCode).toBe(0);
+    expect((await runCompiledJiraFlow(["not-a-command"], { cwd: tmpdir() })).exitCode).toBe(2);
 
     const init = await runCompiledJiraFlow(["init", "--yes"], { cwd: repo.root, env });
     expect(init.exitCode).toBe(0);

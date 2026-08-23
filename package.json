@@ -22,6 +22,7 @@
     "package:native": "bun run scripts/package-native.ts",
     "package:release": "bun run scripts/package-release.ts",
     "smoke:package": "bun run scripts/smoke-package.ts",
+    "verify:release": "bun run scripts/verify-release.ts",
     "playground": "bun run scripts/playground.ts",
     "jf": "bun scripts/jf.ts"
   },
@@ -33,6 +34,7 @@
     "jira-flow"
   ],
   "license": "MIT",
+  "packageManager": "bun@1.3.14",
   "files": [
     "npm/launcher.cjs",
     "npm/platforms.json",

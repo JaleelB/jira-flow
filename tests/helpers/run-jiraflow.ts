@@ -11,7 +11,11 @@ import { join } from "node:path";
  */
 
 export const PROJECT_ROOT = join(import.meta.dir, "..", "..");
-export const COMPILED_BINARY = join(PROJECT_ROOT, "dist", "jira-flow");
+export const COMPILED_BINARY = join(
+  PROJECT_ROOT,
+  "dist",
+  process.platform === "win32" ? "jira-flow.exe" : "jira-flow",
+);
 
 export interface RunResult {
   exitCode: number;

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 /**
@@ -38,13 +39,13 @@ function runJiraFlowFromSource(args: string[], cwd: string): Promise<RunResult> 
 
 describe("jira-flow --help / --version outside a Git repository", () => {
   test("--version prints the version and exits 0", async () => {
-    const result = await runJiraFlowFromSource(["--version"], "/tmp");
+    const result = await runJiraFlowFromSource(["--version"], tmpdir());
     expect(result.exitCode).toBe(0);
     expect(result.stdout.trim()).toBe("1.0.0-alpha.0");
   });
 
   test("--help prints usage and exits 0", async () => {
-    const result = await runJiraFlowFromSource(["--help"], "/tmp");
+    const result = await runJiraFlowFromSource(["--help"], tmpdir());
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Usage:");
     expect(result.stdout).toContain("jira-flow");

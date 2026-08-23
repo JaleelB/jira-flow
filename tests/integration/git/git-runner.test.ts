@@ -1,4 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { GitTimeoutError, GitUnavailableError } from "../../../src/domain/errors";
 import { GitRunner } from "../../../src/infrastructure/git/git-runner";
@@ -26,7 +27,7 @@ afterAll(() => {
 describe("GitRunner", () => {
   test("git version succeeds and captures stdout", async () => {
     const runner = new GitRunner();
-    const result = await runner.run({ cwd: "/tmp", args: ["--version"] });
+    const result = await runner.run({ cwd: tmpdir(), args: ["--version"] });
     expect(result.exitCode).toBe(0);
     expect(result.stdout.trim()).toContain("git version");
     expect(result.stderr).toBe("");
@@ -35,7 +36,7 @@ describe("GitRunner", () => {
   test("invalid command preserves stderr and exit code", async () => {
     const runner = new GitRunner();
     const result = await runner.run({
-      cwd: "/tmp",
+      cwd: tmpdir(),
       args: ["definitely-not-a-real-command"],
     });
     expect(result.exitCode).not.toBe(0);
@@ -106,7 +107,7 @@ describe("GitRunner", () => {
 
   test("missing executable raises GitUnavailableError", async () => {
     const runner = new GitRunner({ executable: "/nonexistent/jiraflow-missing-git" });
-    expect(runner.run({ cwd: "/tmp", args: ["--version"] })).rejects.toBeInstanceOf(
+    expect(runner.run({ cwd: tmpdir(), args: ["--version"] })).rejects.toBeInstanceOf(
       GitUnavailableError,
     );
   });
@@ -116,7 +117,7 @@ describe("GitRunner", () => {
     const runner = new GitRunner({ executable: fixture, timeoutMs: 80 });
     let caught: unknown;
     try {
-      await runner.run({ cwd: "/tmp", args: ["status"] });
+      await runner.run({ cwd: tmpdir(), args: ["status"] });
     } catch (error) {
       caught = error;
     }

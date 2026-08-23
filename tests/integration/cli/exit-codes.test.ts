@@ -40,12 +40,12 @@ function runAt(
 
 describe("CLI exit-code contract (architecture §37)", () => {
   test("--help and --version exit 0 outside a repository", async () => {
-    expect((await runAt(["--help"], "/tmp", process.env)).exitCode).toBe(0);
-    expect((await runAt(["--version"], "/tmp", process.env)).exitCode).toBe(0);
+    expect((await runAt(["--help"], tmpdir(), process.env)).exitCode).toBe(0);
+    expect((await runAt(["--version"], tmpdir(), process.env)).exitCode).toBe(0);
   });
 
   test("unknown command exits 2", async () => {
-    const result = await runAt(["not-a-command"], "/tmp", process.env);
+    const result = await runAt(["not-a-command"], tmpdir(), process.env);
     expect(result.exitCode).toBe(2);
   });
 

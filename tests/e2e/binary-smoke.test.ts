@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, test } from "bun:test";
+import { tmpdir } from "node:os";
 import { ensureCompiledBinary, runCompiledJiraFlow } from "../helpers/run-jiraflow";
 
 /**
@@ -15,13 +16,13 @@ beforeAll(async () => {
 
 describe("compiled jira-flow binary", () => {
   test("--version prints the injected version and exits 0", async () => {
-    const result = await runCompiledJiraFlow(["--version"], { cwd: "/tmp" });
+    const result = await runCompiledJiraFlow(["--version"], { cwd: tmpdir() });
     expect(result.exitCode).toBe(0);
     expect(result.stdout.trim()).toBe("1.0.0-alpha.0");
   });
 
   test("--help prints usage and exits 0", async () => {
-    const result = await runCompiledJiraFlow(["--help"], { cwd: "/tmp" });
+    const result = await runCompiledJiraFlow(["--help"], { cwd: tmpdir() });
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Usage:");
     expect(result.stdout).toContain("jira-flow");
