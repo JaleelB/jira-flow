@@ -25,4 +25,5 @@ Decision records here are the working set used by implementation plans. Applicab
 ## Active plans
 
 - [VS-0 / VS-1 Architecture Validation and Vertical Slice](./plans/vs-0-vs-1-vertical-slice.md) (complete; architecture-frozen)
-- [M2 Core Engine residual](./plans/m2-core-engine.md)
+- [M2 Core Engine residual](./plans/m2-core-engine.md) (complete; hardened)
+- [Residual v1 roadmap E8-E14](./plans/v1-residual-e8-e14.md) (active)
