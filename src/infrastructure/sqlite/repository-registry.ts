@@ -1,5 +1,9 @@
 import { existsSync } from "node:fs";
-import type { RegisteredRepository, RegistryPort } from "../../application/ports/registry.port";
+import type {
+  ControlPlaneRegistryPort,
+  RegisteredRepository,
+  RepositoryCacheEntry,
+} from "../../application/ports/registry.port";
 import { openSqliteDatabase } from "./database";
 import { runMigrations } from "./migrations";
 
@@ -26,7 +30,20 @@ interface RepositoryRow {
   last_opened_at: number | null;
 }
 
-export class SqliteRepositoryRegistry implements RegistryPort {
+interface CacheRow {
+  repository_id: string;
+  branch: string | null;
+  branch_issue: string | null;
+  linked_issue: string | null;
+  active_issue: string | null;
+  active_issue_source: string | null;
+  mode: string | null;
+  enabled: number | null;
+  health: RepositoryCacheEntry["health"];
+  last_sync_at: number;
+}
+
+export class SqliteRepositoryRegistry implements ControlPlaneRegistryPort {
   private readonly databasePath: string;
 
   constructor(options: { databasePath: string }) {
@@ -49,8 +66,8 @@ export class SqliteRepositoryRegistry implements RegistryPort {
 
       if (existing !== null) {
         db.run(
-          "UPDATE repositories SET display_name = ?, remote_url = ?, updated_at = ? WHERE path = ?",
-          [input.displayName, input.remoteUrl, now, input.path],
+          "UPDATE repositories SET display_name = ?, remote_url = ?, updated_at = ?, last_seen_at = ? WHERE path = ?",
+          [input.displayName, input.remoteUrl, now, now, input.path],
         );
         return {
           id: existing.id,
@@ -59,13 +76,15 @@ export class SqliteRepositoryRegistry implements RegistryPort {
           remoteUrl: input.remoteUrl,
           createdAt: existing.created_at,
           updatedAt: now,
+          lastSeenAt: now,
+          lastOpenedAt: existing.last_opened_at,
         };
       }
 
       const id = crypto.randomUUID();
       db.run(
-        "INSERT INTO repositories (id, path, display_name, remote_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-        [id, input.path, input.displayName, input.remoteUrl, now, now],
+        "INSERT INTO repositories (id, path, display_name, remote_url, created_at, updated_at, last_seen_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [id, input.path, input.displayName, input.remoteUrl, now, now, now],
       );
 
       return {
@@ -75,6 +94,8 @@ export class SqliteRepositoryRegistry implements RegistryPort {
         remoteUrl: input.remoteUrl,
         createdAt: now,
         updatedAt: now,
+        lastSeenAt: now,
+        lastOpenedAt: null,
       };
     } finally {
       db.close();
@@ -107,6 +128,143 @@ export class SqliteRepositoryRegistry implements RegistryPort {
       db.close();
     }
   }
+
+  async unregisterById(id: string): Promise<boolean> {
+    return this.deleteWhere("id", id);
+  }
+
+  async findById(id: string): Promise<RegisteredRepository | null> {
+    if (!existsSync(this.databasePath)) return null;
+    const db = openSqliteDatabase({ path: this.databasePath });
+    try {
+      runMigrations(db);
+      const row = db
+        .query<RepositoryRow, [string]>("SELECT * FROM repositories WHERE id = ?")
+        .get(id);
+      return row === null ? null : toRegistered(row);
+    } finally {
+      db.close();
+    }
+  }
+
+  async list(): Promise<RegisteredRepository[]> {
+    if (!existsSync(this.databasePath)) return [];
+    const db = openSqliteDatabase({ path: this.databasePath });
+    try {
+      runMigrations(db);
+      return db
+        .query<RepositoryRow, []>(
+          "SELECT * FROM repositories ORDER BY COALESCE(last_opened_at, last_seen_at, updated_at) DESC, display_name ASC",
+        )
+        .all()
+        .map(toRegistered);
+    } finally {
+      db.close();
+    }
+  }
+
+  async relocate(
+    id: string,
+    path: string,
+    displayName: string,
+    remoteUrl: string | null,
+  ): Promise<void> {
+    const db = this.open();
+    try {
+      const now = Date.now();
+      const result = db.run(
+        "UPDATE repositories SET path = ?, display_name = ?, remote_url = ?, updated_at = ?, last_seen_at = ? WHERE id = ?",
+        [path, displayName, remoteUrl, now, now, id],
+      );
+      if (result.changes === 0) throw new Error(`unknown repository id: ${id}`);
+    } finally {
+      db.close();
+    }
+  }
+
+  async touchSeen(id: string): Promise<void> {
+    await this.touch(id, "last_seen_at");
+  }
+
+  async touchOpened(id: string): Promise<void> {
+    await this.touch(id, "last_opened_at");
+  }
+
+  async upsertCache(entry: RepositoryCacheEntry): Promise<void> {
+    const db = this.open();
+    try {
+      db.run(
+        `INSERT INTO repository_cache (
+          repository_id, branch, branch_issue, linked_issue, active_issue,
+          active_issue_source, mode, enabled, health, last_sync_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(repository_id) DO UPDATE SET
+          branch = excluded.branch,
+          branch_issue = excluded.branch_issue,
+          linked_issue = excluded.linked_issue,
+          active_issue = excluded.active_issue,
+          active_issue_source = excluded.active_issue_source,
+          mode = excluded.mode,
+          enabled = excluded.enabled,
+          health = excluded.health,
+          last_sync_at = excluded.last_sync_at`,
+        [
+          entry.repositoryId,
+          entry.branch,
+          entry.branchIssue,
+          entry.linkedIssue,
+          entry.activeIssue,
+          entry.activeIssueSource,
+          entry.mode,
+          entry.enabled === null ? null : entry.enabled ? 1 : 0,
+          entry.health,
+          entry.lastSyncAt,
+        ],
+      );
+    } finally {
+      db.close();
+    }
+  }
+
+  async getCache(repositoryId: string): Promise<RepositoryCacheEntry | null> {
+    if (!existsSync(this.databasePath)) return null;
+    const db = openSqliteDatabase({ path: this.databasePath });
+    try {
+      runMigrations(db);
+      const row = db
+        .query<CacheRow, [string]>("SELECT * FROM repository_cache WHERE repository_id = ?")
+        .get(repositoryId);
+      return row === null ? null : toCache(row);
+    } finally {
+      db.close();
+    }
+  }
+
+  private open() {
+    const db = openSqliteDatabase({ path: this.databasePath, ensureDirectory: true });
+    runMigrations(db);
+    return db;
+  }
+
+  private async deleteWhere(column: "id" | "path", value: string): Promise<boolean> {
+    if (!existsSync(this.databasePath)) return false;
+    const db = this.open();
+    try {
+      return db.run(`DELETE FROM repositories WHERE ${column} = ?`, [value]).changes > 0;
+    } finally {
+      db.close();
+    }
+  }
+
+  private async touch(id: string, column: "last_seen_at" | "last_opened_at"): Promise<void> {
+    const db = this.open();
+    try {
+      const now = Date.now();
+      db.run(`UPDATE repositories SET ${column} = ?, updated_at = ? WHERE id = ?`, [now, now, id]);
+    } finally {
+      db.close();
+    }
+  }
 }
 
 function toRegistered(row: RepositoryRow): RegisteredRepository {
@@ -117,5 +275,22 @@ function toRegistered(row: RepositoryRow): RegisteredRepository {
     remoteUrl: row.remote_url,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    lastSeenAt: row.last_seen_at,
+    lastOpenedAt: row.last_opened_at,
+  };
+}
+
+function toCache(row: CacheRow): RepositoryCacheEntry {
+  return {
+    repositoryId: row.repository_id,
+    branch: row.branch,
+    branchIssue: row.branch_issue,
+    linkedIssue: row.linked_issue,
+    activeIssue: row.active_issue,
+    activeIssueSource: row.active_issue_source,
+    mode: row.mode,
+    enabled: row.enabled === null ? null : row.enabled === 1,
+    health: row.health,
+    lastSyncAt: row.last_sync_at,
   };
 }

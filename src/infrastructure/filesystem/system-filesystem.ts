@@ -1,4 +1,13 @@
-import { closeSync, fsyncSync, mkdirSync, openSync, renameSync, rmSync, writeSync } from "node:fs";
+import {
+  closeSync,
+  existsSync,
+  fsyncSync,
+  mkdirSync,
+  openSync,
+  renameSync,
+  rmSync,
+  writeSync,
+} from "node:fs";
 import { dirname } from "node:path";
 import type { FilesystemPort } from "../../application/ports/filesystem.port";
 
@@ -11,7 +20,7 @@ import type { FilesystemPort } from "../../application/ports/filesystem.port";
 
 export class SystemFilesystem implements FilesystemPort {
   async exists(path: string): Promise<boolean> {
-    return await Bun.file(path).exists();
+    return existsSync(path);
   }
 
   async readFile(path: string): Promise<string> {

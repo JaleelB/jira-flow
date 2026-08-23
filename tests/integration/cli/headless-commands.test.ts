@@ -94,7 +94,7 @@ describe("link / unlink / mode / enable / disable / config / remove", () => {
     expect(again.mode).toBe("manual");
   });
 
-  test("config list/get/set/unset and unknown key / --global", async () => {
+  test("config list/get/set/unset, unknown key, and global defaults", async () => {
     const { repo, dataDir } = await makeRepo();
     await runCli(["init", "--yes"], repo, dataDir);
 
@@ -102,7 +102,7 @@ describe("link / unlink / mode / enable / disable / config / remove", () => {
     expect(listed.exitCode).toBe(0);
     expect(listed.stdout).toContain("commitFormat=footer (repo)");
     expect(listed.stdout).toContain("issuePattern=");
-    expect(listed.stdout).toContain("(built-in)");
+    expect(listed.stdout).toContain("issuePattern=");
 
     const got = await runCli(["config", "get", "commitFormat"], repo, dataDir);
     expect(got.stdout.trim()).toBe("footer");
@@ -124,8 +124,8 @@ describe("link / unlink / mode / enable / disable / config / remove", () => {
     expect(unknown.stderr).toContain("UNKNOWN_CONFIG_KEY");
 
     const global = await runCli(["config", "list", "--global"], repo, dataDir);
-    expect(global.exitCode).toBe(2);
-    expect(global.stderr).toContain("GLOBAL_CONFIG_UNAVAILABLE");
+    expect(global.exitCode).toBe(0);
+    expect(global.stdout).toContain("defaultMode=hybrid");
   });
 
   test("link has no --title option", async () => {

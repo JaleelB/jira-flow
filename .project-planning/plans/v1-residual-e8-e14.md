@@ -89,8 +89,8 @@ Frozen invariants: one binary; Git CLI authority; Git-local repo configuration; 
 
 | Obligation | Source | Tasks | Primary files | Verification | Status |
 |---|---|---|---|---|---|
-| SQLite is disposable for commit behavior | ADR-0004, ADR-0006 | T-08 | `src/infrastructure/sqlite/**` | DB deletion + compiled commit | Planned |
-| Full control-plane schema/global precedence | Product §§12-20, E8 | T-08 | migrations, ports, use cases | migration/repository/settings tests | Planned |
+| SQLite is disposable for commit behavior | ADR-0004, ADR-0006 | T-08 | `src/infrastructure/sqlite/**` | DB deletion + compiled commit | Verified |
+| Full control-plane schema/global precedence | Product §§12-20, E8 | T-08 | migrations, ports, use cases | migration/repository/settings tests | Verified |
 | Local-only PR titles and nonfatal clipboard | Product §15, E9 | T-09 | domain/use case/platform/CLI | unit + CLI + cache matrix | Planned |
 | TUI is a typed presentation adapter | ADR-0002, E10 | T-10 | `src/tui/**`, TUI facade | reducer/view-model/smoke tests | Planned |
 | Exact legacy signatures only | ADR-0005, E11 | T-11 | legacy analyzer/migrator | frozen fixtures + refusal matrix | Planned |
@@ -247,7 +247,7 @@ None blocking. Packaging strategy is deliberately resolved by T-12 evidence, not
 
 ## To-Dos
 
-- [ ] T-08 E8/control-plane
+- [x] T-08 E8/control-plane — 243-test full gate, typecheck, lint, compiled build
 - [ ] T-09 E9/PR-title
 - [ ] T-10 E10/OpenTUI and M3 gate
 - [ ] T-11 E11/migration

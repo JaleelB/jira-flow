@@ -1,6 +1,7 @@
 import { NotAGitRepositoryError, RepositoryNotConfiguredError } from "../../domain/errors";
 import type { RepositoryStatusView } from "../models/status-view";
 import type { GitPort } from "../ports/git.port";
+import type { ControlPlaneRegistryPort } from "../ports/registry.port";
 
 /**
  * `getStartupContext` — decides what the root `jira-flow` command shows
@@ -14,6 +15,7 @@ import type { GitPort } from "../ports/git.port";
 export type StartupContext =
   | { kind: "repository-overview"; status: RepositoryStatusView }
   | { kind: "unconfigured-repo"; repoPath: string }
+  | { kind: "global-dashboard" }
   | { kind: "empty-state" };
 
 export interface GetStartupContextDeps {
@@ -21,6 +23,7 @@ export interface GetStartupContextDeps {
   getRepositoryStatus: {
     execute(input: { path: string }): Promise<RepositoryStatusView>;
   };
+  registry?: ControlPlaneRegistryPort;
 }
 
 export class GetStartupContext {
@@ -37,13 +40,25 @@ export class GetStartupContext {
       repoPath = repo.root;
     } catch (error) {
       if (error instanceof NotAGitRepositoryError) {
-        return { kind: "empty-state" };
+        const known = (await this.deps.registry?.list()) ?? [];
+        return known.length > 0 ? { kind: "global-dashboard" } : { kind: "empty-state" };
       }
       throw error;
     }
 
     try {
       const status = await this.deps.getRepositoryStatus.execute({ path: input.path });
+      const registered = await this.deps.registry?.findByPath(status.repoPath);
+      const registry = this.deps.registry;
+      if (registered === null && registry) {
+        await registry.register({
+          path: status.repoPath,
+          displayName: status.repoName,
+          remoteUrl: null,
+        });
+      } else if (registered) {
+        await registry?.touchOpened(registered.id);
+      }
       return { kind: "repository-overview", status };
     } catch (error) {
       if (error instanceof RepositoryNotConfiguredError) {

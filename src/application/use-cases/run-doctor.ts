@@ -10,8 +10,10 @@ import type { GitPort } from "../ports/git.port";
 import type { HookManagerPort } from "../ports/hooks.port";
 import type { RegistryPort } from "../ports/registry.port";
 import type { RepoConfigPort } from "../ports/repo-config.port";
+import type { SettingsPort } from "../ports/settings.port";
 import type { WorktreeStatePort } from "../ports/worktree-state.port";
 import { computeEffectiveConfig } from "../services/effective-config";
+import type { ListRepositories } from "./list-repositories";
 
 export interface RunDoctorDeps {
   git: GitPort;
@@ -20,6 +22,8 @@ export interface RunDoctorDeps {
   hooks: HookManagerPort;
   registry?: RegistryPort | null;
   captureBinaryPath?: () => string | null;
+  settings?: SettingsPort;
+  listRepositories?: ListRepositories;
 }
 
 export interface RunDoctorInput {
@@ -41,6 +45,13 @@ export class RunDoctor {
         error instanceof NotAGitRepositoryError ||
         error instanceof BareRepositoryUnsupportedError
       ) {
+        if (
+          error instanceof NotAGitRepositoryError &&
+          this.deps.settings &&
+          this.deps.listRepositories
+        ) {
+          return this.runGlobal();
+        }
         checks.push({ id: "git.repository", status: "fail", detail: error.message });
         return { repoPath: null, checks, overall: overallFor(checks) };
       }
@@ -221,6 +232,33 @@ export class RunDoctor {
     }
 
     return { repoPath: repo.root, checks, overall: overallFor(checks) };
+  }
+
+  private async runGlobal(): Promise<DoctorResult> {
+    const checks: DoctorCheckResult[] = [];
+    try {
+      await this.deps.settings?.read();
+      checks.push({ id: "database.available", status: "pass" });
+      checks.push({ id: "database.schema", status: "pass", detail: "latest migrations applied" });
+    } catch (error) {
+      checks.push({
+        id: "database.available",
+        status: "fail",
+        detail: error instanceof Error ? error.message : String(error),
+      });
+      return { repoPath: null, checks, overall: overallFor(checks) };
+    }
+    const view = await this.deps.listRepositories?.execute({ refresh: true });
+    const missing = view?.repositories.filter((repo) => repo.health === "missing") ?? [];
+    checks.push({
+      id: "registry.paths",
+      status: missing.length === 0 ? "pass" : "warning",
+      detail:
+        missing.length === 0
+          ? `${view?.repositories.length ?? 0} registered repositories`
+          : `${missing.length} missing: ${missing.map((repo) => repo.displayName).join(", ")}`,
+    });
+    return { repoPath: null, checks, overall: overallFor(checks) };
   }
 }
 

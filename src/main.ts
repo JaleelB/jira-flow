@@ -47,6 +47,7 @@ async function main(): Promise<number> {
   const { registerModeCommands } = await import("./cli/commands/mode");
   const { registerRemoveCommand } = await import("./cli/commands/remove");
   const { registerConfigCommand } = await import("./cli/commands/config");
+  const { registerRepositoriesCommand } = await import("./cli/commands/repositories");
   const container = createCliContainer();
   const program = buildProgram();
   registerInitCommand(program, container);
@@ -56,6 +57,7 @@ async function main(): Promise<number> {
   registerModeCommands(program, container);
   registerRemoveCommand(program, container);
   registerConfigCommand(program, container);
+  registerRepositoriesCommand(program, container);
   return parseProgram(program);
 }
 

@@ -1,13 +1,18 @@
 import { isCommitFormat } from "../../domain/commit-format";
 import {
   ConfigInvalidError,
-  GlobalConfigUnavailableError,
   RepositoryNotConfiguredError,
   UnknownConfigKeyError,
 } from "../../domain/errors";
 import { isLinkingMode } from "../../domain/linking-mode";
 import type { GitPort } from "../ports/git.port";
 import type { RepoConfigPort } from "../ports/repo-config.port";
+import {
+  GLOBAL_SETTING_KEYS,
+  type GlobalSettingKey,
+  type GlobalSettings,
+  type SettingsPort,
+} from "../ports/settings.port";
 import {
   computeEffectiveConfig,
   describeEffectiveSources,
@@ -30,7 +35,9 @@ function isConfigKey(value: string): value is ConfigKey {
 }
 
 export class ManageConfig {
-  constructor(private readonly deps: { git: GitPort; config: RepoConfigPort }) {}
+  constructor(
+    private readonly deps: { git: GitPort; config: RepoConfigPort; settings: SettingsPort },
+  ) {}
 
   async execute(input: {
     path: string;
@@ -41,13 +48,15 @@ export class ManageConfig {
   }): Promise<{
     effective: EffectiveWorkflowConfig;
     sources: ReturnType<typeof describeEffectiveSources>;
+    globalSettings?: GlobalSettings;
     key?: string;
     value?: string;
   }> {
     if (input.global === true) {
-      throw new GlobalConfigUnavailableError();
+      return this.executeGlobal(input);
     }
     const repo = await this.deps.git.discoverRepository(input.path);
+    const globalSettings = await this.deps.settings.read();
     let config = await this.deps.config.read(repo);
     if (config === null && input.action !== "list") {
       throw new RepositoryNotConfiguredError(repo.root);
@@ -57,10 +66,10 @@ export class ManageConfig {
       if (input.key === undefined || !isConfigKey(input.key)) {
         throw new UnknownConfigKeyError(input.key ?? "");
       }
-      const effective = computeEffectiveConfig(config);
+      const effective = computeEffectiveConfig(config, {}, globalSettings);
       return {
         effective,
-        sources: describeEffectiveSources(config),
+        sources: describeEffectiveSources(config, {}, globalSettings),
         key: input.key,
         value: String(effective[input.key]),
       };
@@ -89,9 +98,42 @@ export class ManageConfig {
     }
 
     return {
-      effective: computeEffectiveConfig(config),
-      sources: describeEffectiveSources(config),
+      effective: computeEffectiveConfig(config, {}, globalSettings),
+      sources: describeEffectiveSources(config, {}, globalSettings),
     };
+  }
+
+  private async executeGlobal(input: {
+    action: "list" | "get" | "set" | "unset";
+    key?: string;
+    value?: string;
+  }): Promise<{
+    effective: EffectiveWorkflowConfig;
+    sources: ReturnType<typeof describeEffectiveSources>;
+    globalSettings: GlobalSettings;
+    key?: string;
+    value?: string;
+  }> {
+    if (input.action !== "list" && (input.key === undefined || !isGlobalKey(input.key))) {
+      throw new UnknownConfigKeyError(input.key ?? "");
+    }
+    const key = input.key as GlobalSettingKey | undefined;
+    if (input.action === "set" && key !== undefined) {
+      if (input.value === undefined) throw new ConfigInvalidError(key, "missing value");
+      await this.deps.settings.set(key, parseGlobalValue(key, input.value));
+    } else if (input.action === "unset" && key !== undefined) {
+      await this.deps.settings.unset(key);
+    }
+    const globalSettings = await this.deps.settings.read();
+    const base = {
+      effective: computeEffectiveConfig(null, {}, globalSettings),
+      sources: describeEffectiveSources(null, {}, globalSettings),
+      globalSettings,
+    };
+    if (input.action === "get" && key !== undefined) {
+      return { ...base, key, value: String(globalSettings[key]) };
+    }
+    return base;
   }
 
   private async writeKey(
@@ -121,5 +163,41 @@ export class ManageConfig {
         await this.deps.config.setDateFormat(repo, value);
         return;
     }
+  }
+}
+
+function isGlobalKey(value: string): value is GlobalSettingKey {
+  return (GLOBAL_SETTING_KEYS as readonly string[]).includes(value);
+}
+
+function parseGlobalValue(key: GlobalSettingKey, value: string): GlobalSettings[GlobalSettingKey] {
+  switch (key) {
+    case "defaultMode":
+      if (!isLinkingMode(value)) throw new ConfigInvalidError(key, value);
+      return value;
+    case "defaultCommitFormat":
+      if (!isCommitFormat(value)) throw new ConfigInvalidError(key, value);
+      return value;
+    case "copyPrTitleToClipboard":
+      if (!["true", "false", "1", "0"].includes(value)) throw new ConfigInvalidError(key, value);
+      return value === "true" || value === "1";
+    case "theme":
+      if (value !== "system" && value !== "dark" && value !== "light") {
+        throw new ConfigInvalidError(key, value);
+      }
+      return value;
+    case "lastSelectedRepositoryId":
+      return value === "" || value === "null" ? null : value;
+    case "defaultIssuePattern":
+      try {
+        new RegExp(value);
+      } catch {
+        throw new ConfigInvalidError(key, value);
+      }
+      return value;
+    case "defaultPrTitleTemplate":
+    case "defaultDateFormat":
+      if (value.length === 0) throw new ConfigInvalidError(key, value);
+      return value;
   }
 }

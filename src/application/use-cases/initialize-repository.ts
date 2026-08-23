@@ -4,6 +4,7 @@ import type { GitPort, GitRepositoryContext } from "../ports/git.port";
 import type { HookInstallResult, HookManagerPort } from "../ports/hooks.port";
 import type { RegistryPort } from "../ports/registry.port";
 import type { RepoConfigPort } from "../ports/repo-config.port";
+import type { SettingsPort } from "../ports/settings.port";
 import type { WorktreeStatePort } from "../ports/worktree-state.port";
 
 /**
@@ -59,6 +60,7 @@ export interface InitializeRepositoryDeps {
   registry: RegistryPort | null;
   /** Supplies the compiled binary path captured into the hook shim. */
   captureBinaryPath: () => string | null;
+  settings?: SettingsPort;
 }
 
 export interface InitializeRepositoryInput {
@@ -127,9 +129,15 @@ export class InitializeRepository {
 
     try {
       if (!alreadyConfigured) {
+        const global = await this.deps.settings?.read();
         await this.deps.config.setEnabled(repo, true);
-        await this.deps.config.setMode(repo, input.mode ?? "hybrid");
-        await this.deps.config.setCommitFormat(repo, "footer");
+        await this.deps.config.setMode(repo, input.mode ?? global?.defaultMode ?? "hybrid");
+        await this.deps.config.setCommitFormat(repo, global?.defaultCommitFormat ?? "footer");
+        if (global) {
+          await this.deps.config.setIssuePattern(repo, global.defaultIssuePattern);
+          await this.deps.config.setPrTitleTemplate(repo, global.defaultPrTitleTemplate);
+          await this.deps.config.setDateFormat(repo, global.defaultDateFormat);
+        }
         configWritten = true;
       }
 

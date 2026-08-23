@@ -28,8 +28,40 @@ CREATE TABLE IF NOT EXISTS repositories (
 );
 `;
 
+export const MIGRATION_002_CONTROL_PLANE = `-- jiraflow 002-control-plane
+CREATE TABLE IF NOT EXISTS repository_cache (
+    repository_id TEXT PRIMARY KEY,
+    branch TEXT,
+    branch_issue TEXT,
+    linked_issue TEXT,
+    active_issue TEXT,
+    active_issue_source TEXT,
+    mode TEXT,
+    enabled INTEGER,
+    health TEXT,
+    last_sync_at INTEGER NOT NULL,
+    FOREIGN KEY (repository_id) REFERENCES repositories(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS issue_metadata (
+    repository_id TEXT NOT NULL,
+    jira_key TEXT NOT NULL,
+    story_title TEXT,
+    last_used_at INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (repository_id, jira_key),
+    FOREIGN KEY (repository_id) REFERENCES repositories(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value_json TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+`;
+
 export const EMBEDDED_MIGRATIONS: Migration[] = [
   { version: 1, name: "001-initial", sql: MIGRATION_001_INITIAL },
+  { version: 2, name: "002-control-plane", sql: MIGRATION_002_CONTROL_PLANE },
 ];
 
 /** Applies pending migrations inside a transaction; returns the applied versions. */
@@ -45,6 +77,11 @@ export function runMigrations(db: Database): number[] {
 
   const newlyApplied: number[] = [];
   const pending = [...EMBEDDED_MIGRATIONS].sort((a, b) => a.version - b.version);
+  const latest = pending.at(-1)?.version ?? 0;
+  const future = [...applied].find((version) => version > latest);
+  if (future !== undefined) {
+    throw new Error(`database schema version ${future} is newer than supported version ${latest}`);
+  }
 
   for (const migration of pending) {
     if (applied.has(migration.version)) continue;

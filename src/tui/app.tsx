@@ -32,6 +32,8 @@ function renderRoute(context: StartupContext, onQuit: () => void) {
       return <RepositoryOverview status={context.status} onQuit={onQuit} />;
     case "unconfigured-repo":
       return <UnconfiguredRepoStub repoPath={context.repoPath} onQuit={onQuit} />;
+    case "global-dashboard":
+      return <EmptyStateStub onQuit={onQuit} />;
     case "empty-state":
       return <EmptyStateStub onQuit={onQuit} />;
   }
