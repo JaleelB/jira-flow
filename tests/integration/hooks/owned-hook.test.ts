@@ -138,6 +138,34 @@ describe("HookManager.installOwned", () => {
     const log = await repo.runOk(["log", "-1", "--pretty=%B"]);
     expect(log.trim()).toBe("feat: works without jiraflow");
   });
+
+  test("remove deletes a proven owned hook after the captured binary moves", async () => {
+    const { repo, context, hooks } = await setup();
+    await hooks.installOwned(context, { binaryPath: "/old/package/path/jira-flow" });
+
+    const removed = await hooks.remove(context, {
+      binaryPath: "/new/package/path/jira-flow",
+    });
+
+    expect(removed.mode).toBe("owned-file");
+    expect(await Bun.file(join(repo.root, ".git", "hooks", "commit-msg")).exists()).toBe(false);
+  });
+
+  test("remove refuses an owned-shaped hook whose managed body was edited", async () => {
+    const { repo, context, hooks } = await setup();
+    const hookPath = join(repo.root, ".git", "hooks", "commit-msg");
+    const original = generateOwnedHookScript({ binaryPath: "/old/package/path/jira-flow" });
+    const edited = original.replace(
+      "# <<< jiraflow managed block v1",
+      "echo user-added-content\n# <<< jiraflow managed block v1",
+    );
+    await Bun.write(hookPath, edited);
+
+    const removed = await hooks.remove(context, { binaryPath: "/new/package/path/jira-flow" });
+
+    expect(removed.mode).toBe("none");
+    expect(await Bun.file(hookPath).text()).toBe(edited);
+  });
 });
 
 describe("IntegrationMetadataStore", () => {

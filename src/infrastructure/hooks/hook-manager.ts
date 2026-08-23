@@ -31,7 +31,7 @@ import {
 } from "./compose-shell-hook";
 import { analyzeCommitMsgHook } from "./hook-analyzer";
 import { classifyHooksPath } from "./hook-path-classification";
-import { generateManagedBlock, generateOwnedHookScript } from "./hook-script";
+import { generateManagedBlock, generateOwnedHookScript, isGeneratedOwnedHook } from "./hook-script";
 import { IntegrationMetadataStore } from "./integration-metadata";
 
 /**
@@ -211,7 +211,10 @@ export class HookManager implements HookManagerPort {
     rmSync(result.backupPath, { force: true });
   }
 
-  async remove(repo: GitRepositoryContext, options: HookInstallOptions): Promise<HookRemoveResult> {
+  async remove(
+    repo: GitRepositoryContext,
+    _options: HookInstallOptions,
+  ): Promise<HookRemoveResult> {
     const hooks = await this.git.resolveHooks(repo);
     const pathClass = classifyHooksPath(repo, hooks);
     const existing = await this.readHookFile(hooks.commitMsgPath);
@@ -226,8 +229,9 @@ export class HookManager implements HookManagerPort {
     }
 
     if (analysis.status === "owned") {
-      const expected = generateOwnedHookScript({ binaryPath: options.binaryPath });
-      if (existing !== expected) {
+      // The captured path may differ after an upgrade, but every other byte
+      // must still match the generated owned hook before whole-file deletion.
+      if (!isGeneratedOwnedHook(existing)) {
         return { removed: false, mode: "none", hookPath: hooks.commitMsgPath };
       }
       rmSync(hooks.commitMsgPath, { force: true });
