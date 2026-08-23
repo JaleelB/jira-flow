@@ -2490,6 +2490,12 @@ running the standalone native binary reliably.
 
 If Bun-global installation cannot be made robust without adding a second runtime dependency, amend the install-channel product promise before v1 rather than shipping a fragile shim.
 
+SPIKE-01 resolved this condition in DR-0023. The script-free optional-package
+launcher is Node-compatible. npm/pnpm already supply Node; `bun add -g` is
+supported only when `node` 18+ is also available. Bun-only users install the
+runtime-free native archive. No lifecycle downloader or non-default Bun linking
+configuration is used.
+
 ---
 
 # 53. Release Automation
@@ -3149,16 +3155,17 @@ Unless an implementation spike proves one impossible or unsafe:
 
 # 67. Required Technical Spike
 
-Only one architecture area remains deliberately conditional:
+SPIKE-01 is complete; ADR-0009 selects optional platform packages and DR-0023
+records the Bun-only launcher limitation discovered by the final validation.
 
 ## SPIKE-01 — Native binary package-manager launcher
 
-Prove the exact mechanism that allows:
+The implemented mechanism allows:
 
 ```text
 npm install -g jira-flow
 pnpm add -g jira-flow
-bun add -g jira-flow
+bun add -g jira-flow  # with node 18+ available; otherwise use native archive
 ```
 
 to expose the same standalone native JiraFlow binary reliably on:
@@ -3182,7 +3189,8 @@ The spike is complete only when:
 - the TUI runs without a separately installed Bun runtime
 - CI can reproduce the behavior
 
-Once this spike is complete, record the chosen packaging strategy as an ADR and remove the rejected branch.
+The chosen strategy and rejected downloader are recorded in ADR-0009. The
+runtime prerequisite amendment is recorded in DR-0023.
 
 ---
 

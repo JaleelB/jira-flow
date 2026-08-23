@@ -260,13 +260,20 @@ pnpm add -g jira-flow
 bun add -g jira-flow
 ```
 
+The npm/pnpm channels require Node 18 or newer. The Bun global channel uses the
+same Node-compatible universal launcher and is supported when a compatible
+`node` command is also available. A Bun-only environment must use the native
+release archive instead (DR-0023).
+
 The installed command is:
 
 ```bash
 jira-flow
 ```
 
-The end user should not need a separate Bun runtime after installation if the final distribution uses standalone compiled binaries.
+The compiled JiraFlow application does not require Bun or Node. Package-manager
+launchers may require their declared package-manager runtime; native release
+archives are runtime-free (DR-0023).
 
 ---
 

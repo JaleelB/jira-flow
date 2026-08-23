@@ -61,6 +61,10 @@ No downloader implementation remains in the repository.
 ## Validation boundary
 
 Linux-x64 execution and all three package-manager flows were validated locally.
+The initial Bun flow had Node on `PATH`. A follow-up Bun-only test exited 127 at
+the universal launcher's Node shebang. DR-0023 explicitly narrows that channel
+to Bun plus Node 18+ and makes native archives the runtime-free alternative;
+the product does not ship a fragile install-script workaround.
 macOS and Windows artifacts were cross-compiled and structurally checked here;
 their native execution, platform shims, TUI startup, and package-manager matrix
 must run in remote CI before release. Linux ARM64 and Windows ARM64 are included

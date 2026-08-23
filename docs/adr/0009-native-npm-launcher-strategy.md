@@ -80,6 +80,9 @@ blocking commits.
   macOS and Windows remains a required CI gate.
 - The release also emits standalone archives and `SHA256SUMS` for all six
   targets.
+- A Bun-only environment cannot execute the universal launcher's Node shebang.
+  DR-0023 therefore requires Node 18+ for the Bun global channel or directs the
+  user to the runtime-free native archive.
 
 ## Related Files
 
