@@ -51,19 +51,25 @@ export class IntegrationMetadataStore {
     },
   ): Promise<HookIntegrationMetadata> {
     const path = await this.resolveMetadataPath(repo);
+    const existing = await this.read(repo);
     const timestamp = (input.installedAt ?? this.now()).toISOString();
+    const strategy = input.strategy ?? "owned";
+    const originalSha256 =
+      input.originalSha256 ?? (strategy === "composed" ? existing?.originalSha256 : undefined);
+    const backupPath =
+      input.backupPath ?? (strategy === "composed" ? existing?.backupPath : undefined);
     const metadata: HookIntegrationMetadata = {
       schemaVersion: 1,
       hook: "commit-msg",
-      strategy: input.strategy ?? "owned",
+      strategy,
       hookPath: input.hookPath,
       blockVersion: MANAGED_BLOCK_VERSION,
       blockId: BLOCK_ID,
       capturedBinaryPath: input.capturedBinaryPath,
       installedAt: timestamp,
       lastVerifiedAt: timestamp,
-      ...(input.originalSha256 !== undefined ? { originalSha256: input.originalSha256 } : {}),
-      ...(input.backupPath !== undefined ? { backupPath: input.backupPath } : {}),
+      ...(originalSha256 !== undefined ? { originalSha256 } : {}),
+      ...(backupPath !== undefined ? { backupPath } : {}),
     };
 
     writeJsonAtomic(path, metadata);

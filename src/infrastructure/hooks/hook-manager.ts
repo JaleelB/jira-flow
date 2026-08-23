@@ -85,7 +85,7 @@ export class HookManager implements HookManagerPort {
         status: "shared-external",
         reason:
           contentClass === "missing"
-            ? "hooksPath is shared/external; missing commit-msg will not be created without --allow-shared-hooks"
+            ? "hooksPath is shared/external; missing commit-msg requires --compose-existing-hook and --allow-shared-hooks"
             : "hooksPath is shared/external; composing requires --compose-existing-hook --allow-shared-hooks",
       };
     }
@@ -125,13 +125,13 @@ export class HookManager implements HookManagerPort {
 
     if (
       shared &&
-      !allowShared &&
+      (!compose || !allowShared) &&
       analysis.status !== "owned" &&
       analysis.status !== "managed-block"
     ) {
       throw new HookUnsafeToModifyError(
         hooks.commitMsgPath,
-        "shared/external hooksPath is never mutated without --allow-shared-hooks",
+        "shared/external hooksPath requires --compose-existing-hook and --allow-shared-hooks",
       );
     }
 
@@ -156,10 +156,10 @@ export class HookManager implements HookManagerPort {
     }
 
     if (analysis.status === "missing") {
-      if (shared && !allowShared) {
+      if (shared && (!compose || !allowShared)) {
         throw new HookUnsafeToModifyError(
           hooks.commitMsgPath,
-          "shared/external hooksPath is never mutated without --allow-shared-hooks",
+          "shared/external hooksPath requires --compose-existing-hook and --allow-shared-hooks",
         );
       }
       const script = generateOwnedHookScript({ binaryPath: options.binaryPath });
@@ -188,6 +188,27 @@ export class HookManager implements HookManagerPort {
   async removeOwned(repo: GitRepositoryContext, options: HookInstallOptions): Promise<boolean> {
     const result = await this.remove(repo, options);
     return result.mode === "owned-file";
+  }
+
+  async rollbackInstall(result: HookInstallResult, _options: HookInstallOptions): Promise<void> {
+    if (result.strategy !== "composed" || result.backupPath === undefined) {
+      throw new HookUnsafeToModifyError(
+        result.hookPath,
+        "exact composed-hook rollback requires installation backup evidence",
+      );
+    }
+
+    const original = await this.readHookFile(result.backupPath);
+    if (original === null) {
+      throw new HookUnsafeToModifyError(result.hookPath, "composition backup is missing");
+    }
+    const originalSha256 = createHash("sha256").update(original).digest("hex");
+    if (result.originalSha256 === undefined || originalSha256 !== result.originalSha256) {
+      throw new HookUnsafeToModifyError(result.hookPath, "composition backup hash does not match");
+    }
+
+    this.writeHookFile(result.hookPath, original);
+    rmSync(result.backupPath, { force: true });
   }
 
   async remove(repo: GitRepositoryContext, options: HookInstallOptions): Promise<HookRemoveResult> {
@@ -238,15 +259,26 @@ export class HookManager implements HookManagerPort {
     const composed = insertManagedBlockAfterShebang(original, block);
     this.writeHookFile(hookPath, composed);
 
-    await this.metadata.write(repo, {
-      hookPath,
-      capturedBinaryPath: binaryPath,
-      strategy: "composed",
-      originalSha256: sha,
-      backupPath,
-    });
+    try {
+      await this.metadata.write(repo, {
+        hookPath,
+        capturedBinaryPath: binaryPath,
+        strategy: "composed",
+        originalSha256: sha,
+        backupPath,
+      });
+    } catch (error) {
+      this.writeHookFile(hookPath, original);
+      throw error;
+    }
 
-    return { strategy: "composed", hookPath, created: false, backupPath };
+    return {
+      strategy: "composed",
+      hookPath,
+      created: false,
+      backupPath,
+      originalSha256: sha,
+    };
   }
 
   private async readHookFile(path: string): Promise<string | null> {

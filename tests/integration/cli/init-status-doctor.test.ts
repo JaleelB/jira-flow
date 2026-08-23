@@ -158,6 +158,23 @@ describe("jira-flow init --yes", () => {
     const hook = await Bun.file(join(repo.root, ".git", "hooks", "commit-msg")).text();
     expect(hook).toContain("echo foreign");
     expect(hook).toContain("# >>> jiraflow managed block v1");
+    const metaPath = (
+      await repo.runOk([
+        "rev-parse",
+        "--path-format=absolute",
+        "--git-path",
+        "jiraflow/integration.json",
+      ])
+    ).trim();
+    const meta = JSON.parse(await Bun.file(metaPath).text()) as {
+      originalSha256?: string;
+      backupPath?: string;
+      strategy?: string;
+    };
+    expect(meta.strategy).toBe("composed");
+    expect(meta.originalSha256).toHaveLength(64);
+    expect(meta.backupPath).toBeDefined();
+    expect(await Bun.file(meta.backupPath as string).text()).toBe(foreign);
   });
 
   test("init refuses a repo with a foreign commit-msg and mutates nothing", async () => {
@@ -302,5 +319,15 @@ describe("jira-flow doctor", () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Doctor: broken");
     expect(result.stdout).toContain("[fail] config.valid");
+  });
+
+  test("doctor --repair on an unconfigured repo does not initialize", async () => {
+    const { repo, dataDir } = await makeRepo();
+    const result = await runCli(["doctor", "--repair"], repo, dataDir);
+    expect(result.exitCode).toBe(3);
+    expect(result.stderr).toContain("REPOSITORY_NOT_CONFIGURED");
+    expect(await Bun.file(join(repo.root, ".git", "hooks", "commit-msg")).exists()).toBe(false);
+    const config = await repo.run(["config", "--local", "--get-regexp", "^jiraflow\\."]);
+    expect(config.exitCode).not.toBe(0);
   });
 });

@@ -166,6 +166,10 @@ class FakeHooks implements HookManagerPort {
     this.installed = false;
     return true;
   }
+
+  async rollbackInstall(): Promise<void> {
+    this.installed = false;
+  }
 }
 
 class FakeMetadata {

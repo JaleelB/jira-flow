@@ -43,6 +43,7 @@ export interface IntegrationMetadataWriter {
       capturedBinaryPath: string | null;
       strategy?: "owned" | "composed";
       backupPath?: string;
+      originalSha256?: string;
     },
   ): Promise<unknown>;
   remove(repo: GitRepositoryContext): Promise<void>;
@@ -101,11 +102,14 @@ export class InitializeRepository {
     if (inspection.status === "composable-shell" && input.composeExistingHook !== true) {
       throw new HookConflictError(inspection.hookPath);
     }
-    if (inspection.status === "shared-external" && input.allowSharedHooks !== true) {
-      throw new HookUnsafeToModifyError(
-        inspection.hookPath,
-        inspection.reason ?? "shared/external hooksPath requires --allow-shared-hooks",
-      );
+    if (inspection.status === "shared-external") {
+      if (input.composeExistingHook !== true || input.allowSharedHooks !== true) {
+        throw new HookUnsafeToModifyError(
+          inspection.hookPath,
+          inspection.reason ??
+            "shared/external hooksPath requires --compose-existing-hook and --allow-shared-hooks",
+        );
+      }
     }
 
     const existingConfig = await this.deps.config.read(repo);
@@ -119,6 +123,7 @@ export class InitializeRepository {
     let metadataWritten = false;
 
     let hookComposed = false;
+    let hookInstall: HookInstallResult | null = null;
 
     try {
       if (!alreadyConfigured) {
@@ -138,6 +143,7 @@ export class InitializeRepository {
         composeExistingHook: input.composeExistingHook === true,
         allowSharedHooks: input.allowSharedHooks === true,
       });
+      hookInstall = hook;
       hookCreated = hook.created;
       hookComposed = hook.strategy === "composed" && hook.backupPath !== undefined;
 
@@ -146,6 +152,7 @@ export class InitializeRepository {
         capturedBinaryPath: this.deps.captureBinaryPath(),
         strategy: hook.strategy,
         backupPath: hook.backupPath,
+        originalSha256: hook.originalSha256,
       });
       metadataWritten = true;
 
@@ -190,6 +197,7 @@ export class InitializeRepository {
         stateWritten,
         hookCreated,
         hookComposed,
+        hookInstall,
         metadataWritten,
       });
       throw error;
@@ -208,6 +216,7 @@ export class InitializeRepository {
       stateWritten: boolean;
       hookCreated: boolean;
       hookComposed: boolean;
+      hookInstall: HookInstallResult | null;
       metadataWritten: boolean;
     },
   ): Promise<void> {
@@ -229,7 +238,7 @@ export class InitializeRepository {
       }
     }
 
-    if (ledger.metadataWritten) {
+    if (ledger.metadataWritten || ledger.hookComposed) {
       try {
         await this.deps.metadata.remove(repo);
       } catch {
@@ -247,7 +256,10 @@ export class InitializeRepository {
       }
     } else if (ledger.hookComposed) {
       try {
-        await this.deps.hooks.remove(repo, {
+        if (ledger.hookInstall === null) {
+          throw new Error("missing composed hook installation evidence");
+        }
+        await this.deps.hooks.rollbackInstall(ledger.hookInstall, {
           binaryPath: this.deps.captureBinaryPath(),
         });
       } catch {

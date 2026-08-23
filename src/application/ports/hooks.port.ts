@@ -37,6 +37,7 @@ export interface HookInstallResult {
   hookPath: string;
   created: boolean;
   backupPath?: string;
+  originalSha256?: string;
 }
 
 export interface HookRemoveResult {
@@ -59,4 +60,7 @@ export interface HookManagerPort {
   remove(repo: GitRepositoryContext, options: HookInstallOptions): Promise<HookRemoveResult>;
 
   removeOwned(repo: GitRepositoryContext, options: HookInstallOptions): Promise<boolean>;
+
+  /** Restore the exact pre-install hook when an initialization transaction fails. */
+  rollbackInstall(result: HookInstallResult, options: HookInstallOptions): Promise<void>;
 }

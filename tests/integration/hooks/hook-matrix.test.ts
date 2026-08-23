@@ -157,6 +157,35 @@ describe("hook matrix (architecture §42.4)", () => {
     expect(await Bun.file(join(shared, "commit-msg")).exists()).toBe(false);
   });
 
+  test("shared hooksPath missing commit-msg requires both consent flags", async () => {
+    const { repo, git, hooks } = await setup();
+    const shared = mkdtempSync(join(tmpdir(), "jiraflow-shared-missing-"));
+    scratch.push(() => rmSync(shared, { recursive: true, force: true }));
+    mkdirSync(shared, { recursive: true });
+    await repo.runOk(["config", "--local", "core.hooksPath", shared]);
+    const context = await git.discoverRepository(repo.root);
+    const hookPath = join(shared, "commit-msg");
+
+    await expect(hooks.install(context, { binaryPath: BINARY })).rejects.toBeInstanceOf(
+      HookUnsafeToModifyError,
+    );
+    await expect(
+      hooks.install(context, { binaryPath: BINARY, allowSharedHooks: true }),
+    ).rejects.toBeInstanceOf(HookUnsafeToModifyError);
+    await expect(
+      hooks.install(context, { binaryPath: BINARY, composeExistingHook: true }),
+    ).rejects.toBeInstanceOf(HookUnsafeToModifyError);
+    expect(await Bun.file(hookPath).exists()).toBe(false);
+
+    const result = await hooks.install(context, {
+      binaryPath: BINARY,
+      composeExistingHook: true,
+      allowSharedHooks: true,
+    });
+    expect(result.strategy).toBe("owned");
+    expect(await Bun.file(hookPath).exists()).toBe(true);
+  });
+
   test("shared hooksPath compose requires both consent flags", async () => {
     const { repo, git, hooks } = await setup();
     const shared = mkdtempSync(join(tmpdir(), "jiraflow-shared-compose-"));
@@ -170,6 +199,9 @@ describe("hook matrix (architecture §42.4)", () => {
 
     await expect(
       hooks.install(context, { binaryPath: BINARY, composeExistingHook: true }),
+    ).rejects.toBeInstanceOf(HookUnsafeToModifyError);
+    await expect(
+      hooks.install(context, { binaryPath: BINARY, allowSharedHooks: true }),
     ).rejects.toBeInstanceOf(HookUnsafeToModifyError);
 
     const result = await hooks.install(context, {

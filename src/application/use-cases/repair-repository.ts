@@ -1,3 +1,4 @@
+import { RepositoryNotConfiguredError } from "../../domain/errors";
 import type { GitPort } from "../ports/git.port";
 import type { HookManagerPort } from "../ports/hooks.port";
 import type { RegistryPort } from "../ports/registry.port";
@@ -27,6 +28,10 @@ export class RepairRepository {
     const repaired: string[] = [];
     const refused: string[] = [];
     const repo = await this.deps.git.discoverRepository(input.path);
+    const existingConfig = await this.deps.config.read(repo);
+    if (existingConfig === null) {
+      throw new RepositoryNotConfiguredError(repo.root);
+    }
     const inspection = await this.deps.hooks.inspect(repo);
 
     if (inspection.status === "missing" || inspection.status === "owned") {
@@ -38,6 +43,7 @@ export class RepairRepository {
         capturedBinaryPath: this.deps.captureBinaryPath(),
         strategy: hook.strategy,
         backupPath: hook.backupPath,
+        originalSha256: hook.originalSha256,
       });
       repaired.push("hooks.integration");
     } else if (inspection.status === "managed-block") {
@@ -49,6 +55,7 @@ export class RepairRepository {
         capturedBinaryPath: this.deps.captureBinaryPath(),
         strategy: hook.strategy,
         backupPath: hook.backupPath,
+        originalSha256: hook.originalSha256,
       });
       repaired.push("hooks.integration");
     } else {
