@@ -41,14 +41,14 @@ jobs:
       - name: Unit and application tests
         run: bun test tests/unit tests/application
 
+      - name: Compile standalone application
+        run: bun run build
+
       - name: SQLite integration tests
         run: bun test tests/integration/sqlite
 
       - name: Full test suite
         run: bun test
-
-      - name: Compile standalone application
-        run: bun run build
 
       - name: Smoke compiled command
         run: |
