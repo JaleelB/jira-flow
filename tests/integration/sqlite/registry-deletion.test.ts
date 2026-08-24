@@ -101,9 +101,15 @@ describe("SqliteRepositoryRegistry", () => {
     // Normalize the header comment: the file's prose header is documentation;
     // compare the executable part.
     const executablePart = fileSql.slice(fileSql.indexOf("CREATE TABLE"));
-    expect(MIGRATION_001_INITIAL).toContain(executablePart.trim());
+    expect(normalizeNewlines(MIGRATION_001_INITIAL)).toContain(
+      normalizeNewlines(executablePart.trim()),
+    );
   });
 });
+
+function normalizeNewlines(value: string): string {
+  return value.replaceAll("\r\n", "\n");
+}
 
 describe("registry deletion does not break commit behavior (VT-12)", () => {
   test("init registers; delete DB; commit still applies the footer", async () => {

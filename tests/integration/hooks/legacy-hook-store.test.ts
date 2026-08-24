@@ -24,6 +24,7 @@ describe("LegacyHookStore", () => {
     await Bun.write(commitPath, content);
     chmodSync(commitPath, 0o755);
     symlinkSync("../../bin/postco", postPath);
+    const storedPostTarget = readlinkSync(postPath);
     const store = new LegacyHookStore();
 
     const snapshot = await store.capture(hooksDir);
@@ -35,7 +36,7 @@ describe("LegacyHookStore", () => {
     if (process.platform !== "win32") {
       expect(lstatSync(commitPath).mode & 0o111).not.toBe(0);
     }
-    expect(readlinkSync(postPath)).toBe("../../bin/postco");
+    expect(readlinkSync(postPath)).toBe(storedPostTarget);
   });
 
   test("refuses removal when either hook changed after capture", async () => {
