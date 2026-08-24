@@ -35,6 +35,23 @@ const noopServices = {
   },
 } as unknown as TuiServices;
 
+interface RenderSetup {
+  captureCharFrame(): string;
+  flush(): Promise<void>;
+}
+
+async function captureWhenReady(setup: RenderSetup, marker: string): Promise<string> {
+  let frame = setup.captureCharFrame();
+  for (let attempt = 0; attempt < 100 && !frame.includes(marker); attempt++) {
+    await act(async () => {
+      await Bun.sleep(10);
+      await setup.flush();
+    });
+    frame = setup.captureCharFrame();
+  }
+  return frame;
+}
+
 async function makeStatusView() {
   const repo = createTempGitRepository({ initialBranch: "main" });
   repos.push(repo);
@@ -68,8 +85,7 @@ describe("Repository overview", () => {
       />,
       { width: 72, height: 26 },
     );
-    await setup.waitForVisualIdle();
-    const frame = setup.captureCharFrame();
+    const frame = await captureWhenReady(setup, "ACTIVE TICKET");
 
     expect(frame).toContain(view.repoName);
     expect(frame).toContain("ACTIVE TICKET");
@@ -96,7 +112,7 @@ describe("Repository overview", () => {
       />,
       { width: 72, height: 26 },
     );
-    await setup.waitForVisualIdle();
+    await captureWhenReady(setup, "ACTIVE TICKET");
     await act(async () => {
       setup.mockInput.pressKey("q");
       await setup.flush();
@@ -118,8 +134,7 @@ describe("App routing", () => {
       />,
       { width: 64, height: 20 },
     );
-    await setup.waitForVisualIdle();
-    const frame = setup.captureCharFrame();
+    const frame = await captureWhenReady(setup, "◆ JIRAFLOW");
     expect(frame).toContain("◆ JIRAFLOW");
     expect(frame).toContain("S2");
     expect(frame).toContain("Unconfigured Repository");
@@ -132,8 +147,7 @@ describe("App routing", () => {
       <App services={noopServices} initialContext={{ kind: "empty-state" }} onQuit={() => {}} />,
       { width: 64, height: 20 },
     );
-    await setup.waitForVisualIdle();
-    const frame = setup.captureCharFrame();
+    const frame = await captureWhenReady(setup, "◆ JIRAFLOW");
     expect(frame).toContain("◆ JIRAFLOW");
     expect(frame).toContain("S1");
     expect(frame).toContain("No repositories are configured yet");
