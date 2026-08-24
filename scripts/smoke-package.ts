@@ -194,11 +194,18 @@ function uninstall(
       installation.env,
     );
   } else {
-    const packages =
-      process.platform === "win32"
-        ? ["jira-flow", `jira-flow-${process.platform}-${process.arch}`]
-        : ["jira-flow"];
-    runCommand("bun", ["remove", "-g", ...packages, "--ignore-scripts"], installation.env);
+    // The Windows unpublished-package fixture installs the native tarball as a
+    // direct package before the universal package. Remove the user-facing
+    // package first so Bun removes its command shim exactly as it will for the
+    // published optional-dependency graph, then clean up the direct fixture.
+    runCommand("bun", ["remove", "-g", "jira-flow", "--ignore-scripts"], installation.env);
+    if (process.platform === "win32") {
+      runCommand(
+        "bun",
+        ["remove", "-g", `jira-flow-${process.platform}-${process.arch}`, "--ignore-scripts"],
+        installation.env,
+      );
+    }
   }
 }
 
