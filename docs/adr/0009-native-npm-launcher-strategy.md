@@ -83,6 +83,10 @@ blocking commits.
 - A Bun-only environment cannot execute the universal launcher's Node shebang.
   DR-0023 therefore requires Node 18+ for the Bun global channel or directs the
   user to the runtime-free native archive.
+- Bun 1.3.14 and 1.4.0 on Windows leave their generated, nonfunctional
+  `jira-flow.exe` shim after removing the packages. DR-0026 excludes Windows Bun
+  global uninstall from the v1 support contract instead of adding an unsafe
+  lifecycle cleanup script.
 
 ## Related Files
 

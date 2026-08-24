@@ -21,9 +21,12 @@ bun add -g jira-flow
 ```
 
 npm and pnpm already run on Node; the universal package launcher requires Node
-18+. Bun-only environments should install the runtime-free native archive from
-GitHub Releases. The JiraFlow application itself is a standalone binary and
-does not require Bun or Node. See [Installation](docs/installation.md).
+18+. Bun global lifecycle support is limited to Linux and macOS in v1; Windows
+users should use npm, pnpm, or the runtime-free native archive because Bun
+1.3.14 and 1.4.0 leave a nonfunctional command shim after uninstall (DR-0026).
+Bun-only environments should also use the native archive. The JiraFlow
+application itself is a standalone binary and does not require Bun or Node. See
+[Installation](docs/installation.md).
 
 ## Quick start
 

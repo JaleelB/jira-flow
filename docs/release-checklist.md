@@ -16,10 +16,13 @@ environment and an explicit maintainer workflow dispatch are required.
 
 - [ ] Normal CI passes.
 - [ ] Real-Git integration passes Linux x64, macOS arm64, macOS x64, Windows x64.
-- [ ] npm, pnpm, and Bun package smoke passes on all four target runners.
+- [ ] npm and pnpm package smoke passes on all four target runners; Bun passes
+      on Linux/macOS and its exact DR-0026 compatibility gate passes on Windows.
 - [ ] Package smoke includes paths with spaces, repository non-mutation, exact
       version/help, init, real commit, Doctor, TUI startup, forced reinstall,
-      uninstall, and missing-executable commit.
+      uninstall, and missing-executable commit. Windows Bun must additionally
+      prove package removal, a nonfunctional exact shim residue, and no broader
+      cleanup regression.
 - [ ] Additional ARM artifacts cross-build; native ARM claims are made only for
       runners actually executed.
 

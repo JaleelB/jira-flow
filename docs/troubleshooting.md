@@ -75,6 +75,15 @@ warning never means title generation failed.
 The universal package launcher requires Node 18+ (DR-0023). Install Node, use
 npm/pnpm, or install the native release archive for a runtime-free command.
 
+## Windows still finds `jira-flow.exe` after `bun remove -g`
+
+Bun 1.3.14 and 1.4.0 can remove JiraFlow's global packages while leaving Bun's
+generated, nonfunctional `jira-flow.exe` shim on `PATH` (DR-0026). JiraFlow does
+not delete package-manager-owned files through an uninstall script. Use npm,
+pnpm, or the native archive for the supported Windows v1 lifecycle. If you
+already used Bun, remove the stale file from the Bun global bin directory after
+confirming `bun pm ls -g` no longer lists a JiraFlow package.
+
 ## v0.5 migration is refused
 
 The migrator accepts only exact historical signatures. Refusal is the safe

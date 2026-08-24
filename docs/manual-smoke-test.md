@@ -540,7 +540,10 @@ bun run smoke:package -- --manager bun --package $PackageTarball
 ```
 
 All three commands must end with `<manager> package smoke passed`. The Bun
-package smoke requires Node 18+ to remain on `PATH`.
+package smoke requires Node 18+ to remain on `PATH`. On Windows, the Bun result
+may also report the exact DR-0026 nonfunctional `jira-flow.exe` residue after
+proving that the packages were removed; npm or pnpm is required for a supported
+clean Windows package lifecycle.
 
 ## Published RC check
 

@@ -265,6 +265,11 @@ same Node-compatible universal launcher and is supported when a compatible
 `node` command is also available. A Bun-only environment must use the native
 release archive instead (DR-0023).
 
+DR-0026 further amends the Windows channel: Bun global install/upgrade/run is
+compatibility-tested, but Windows Bun global uninstall is not a supported v1
+lifecycle because Bun 1.3.14 and 1.4.0 leave their generated, nonfunctional
+`jira-flow.exe` shim. Windows users use npm, pnpm, or the native archive.
+
 The installed command is:
 
 ```bash
