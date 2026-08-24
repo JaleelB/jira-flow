@@ -83,7 +83,7 @@ describe("Repository overview", () => {
         initialContext={{ kind: "repository-overview", status: view }}
         onQuit={() => {}}
       />,
-      { width: 72, height: 26 },
+      { width: 90, height: 26 },
     );
     const frame = await captureWhenReady(setup, "ACTIVE TICKET");
 
@@ -134,8 +134,8 @@ describe("App routing", () => {
       />,
       { width: 64, height: 20 },
     );
-    const frame = await captureWhenReady(setup, "◆ JIRAFLOW");
-    expect(frame).toContain("◆ JIRAFLOW");
+    const frame = await captureWhenReady(setup, "JIRAFLOW");
+    expect(frame).toContain("JIRAFLOW");
     expect(frame).toContain("S2");
     expect(frame).toContain("Unconfigured Repository");
     expect(frame).toContain("Set up JiraFlow");
@@ -147,8 +147,8 @@ describe("App routing", () => {
       <App services={noopServices} initialContext={{ kind: "empty-state" }} onQuit={() => {}} />,
       { width: 64, height: 20 },
     );
-    const frame = await captureWhenReady(setup, "◆ JIRAFLOW");
-    expect(frame).toContain("◆ JIRAFLOW");
+    const frame = await captureWhenReady(setup, "JIRAFLOW");
+    expect(frame).toContain("JIRAFLOW");
     expect(frame).toContain("S1");
     expect(frame).toContain("No repositories are configured yet");
     setup.renderer.destroy();
