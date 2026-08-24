@@ -88,10 +88,14 @@ try {
 
   uninstall(manager, installation);
   const remainingCommands = await waitForCommandRemoval(dirname(installation.command));
-  assert(
-    remainingCommands.length === 0,
-    `${manager} uninstall left command shims behind: ${remainingCommands.join(", ")}`,
-  );
+  if (manager === "bun" && process.platform === "win32") {
+    assertKnownWindowsBunUninstallLimitation(installation, remainingCommands);
+  } else {
+    assert(
+      remainingCommands.length === 0,
+      `${manager} uninstall left command shims behind: ${remainingCommands.join(", ")}`,
+    );
+  }
   writeFileSync(join(repo, "after-uninstall.txt"), "still commits\n", "utf8");
   git(["add", "after-uninstall.txt"]);
   git(["commit", "-m", "chore: commit after uninstall"], {
@@ -231,6 +235,47 @@ async function waitForCommandRemoval(binDir: string): Promise<string[]> {
     await Bun.sleep(50);
   }
   return commandCandidates(binDir).filter((candidate) => existsSync(candidate));
+}
+
+function assertKnownWindowsBunUninstallLimitation(
+  installation: { command: string; env: Record<string, string | undefined> },
+  remainingCommands: string[],
+): void {
+  const expectedShim = join(dirname(installation.command), "jira-flow.exe");
+  assert(
+    remainingCommands.length === 1 && resolve(remainingCommands[0] ?? "") === resolve(expectedShim),
+    `Bun's documented Windows residue changed: ${remainingCommands.join(", ") || "none"}`,
+  );
+
+  const bunInstall = installation.env.BUN_INSTALL;
+  assert(
+    bunInstall !== undefined,
+    "BUN_INSTALL is required to inspect the isolated global manifest",
+  );
+  const manifestPath = join(bunInstall, "install", "global", "package.json");
+  const manifest = existsSync(manifestPath)
+    ? (JSON.parse(readFileSync(manifestPath, "utf8")) as {
+        dependencies?: Record<string, string>;
+      })
+    : {};
+  const installedJiraFlowPackages = Object.keys(manifest.dependencies ?? {}).filter((name) =>
+    name.startsWith("jira-flow"),
+  );
+  assert(
+    installedJiraFlowPackages.length === 0,
+    `bun remove left packages installed: ${installedJiraFlowPackages.join(", ")}`,
+  );
+
+  const staleCommand = Bun.spawnSync(commandInvocation(expectedShim, ["--version"]), {
+    cwd: repo,
+    env: installation.env,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  assert(staleCommand.exitCode !== 0, "Bun's residual Windows shim still launches JiraFlow");
+  process.stdout.write(
+    "Windows Bun removed JiraFlow packages; known nonfunctional jira-flow.exe residue observed\n",
+  );
 }
 
 function installWithBun(env: Record<string, string | undefined>, force = false): void {
