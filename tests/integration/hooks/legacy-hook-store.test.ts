@@ -32,7 +32,9 @@ describe("LegacyHookStore", () => {
     await store.restore(snapshot, ["commit-msg", "post-checkout"]);
 
     expect(await Bun.file(commitPath).text()).toBe(content);
-    expect(lstatSync(commitPath).mode & 0o111).not.toBe(0);
+    if (process.platform !== "win32") {
+      expect(lstatSync(commitPath).mode & 0o111).not.toBe(0);
+    }
     expect(readlinkSync(postPath)).toBe("../../bin/postco");
   });
 
