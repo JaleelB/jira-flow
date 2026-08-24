@@ -275,8 +275,22 @@ async function smokeTui(installation: {
     throw new Error(`packaged Windows TUI exited during startup (${result.exitCode})`);
   }
   if (result.kind === "running") {
-    child.kill();
-    await child.exited;
+    child.stdin.write("q");
+    await child.stdin.end();
+    const gracefulExit = await Promise.race([
+      child.exited.then((exitCode) => ({ kind: "exit" as const, exitCode })),
+      Bun.sleep(3_000).then(() => ({ kind: "running" as const, exitCode: 0 })),
+    ]);
+    if (gracefulExit.kind === "exit" && gracefulExit.exitCode !== 0) {
+      throw new Error(`packaged Windows TUI did not quit cleanly (${gracefulExit.exitCode})`);
+    }
+    if (gracefulExit.kind === "running") {
+      Bun.spawnSync(["taskkill.exe", "/PID", String(child.pid), "/T", "/F"], {
+        stdout: "ignore",
+        stderr: "ignore",
+      });
+      await child.exited;
+    }
   }
 }
 
