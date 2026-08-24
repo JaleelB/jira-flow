@@ -64,7 +64,9 @@ jira-flow pr-title --title "Improve login error handling" --no-copy
 ```
 
 Run `jira-flow` with no arguments for the OpenTUI dashboard. `?` opens help,
-`Esc` goes back, and `Q` quits except on destructive confirmation screens.
+`Esc` goes back, and `Q` quits except on text-entry and destructive confirmation
+screens. In the global dashboard, use `Up`/`Down` or `J`/`K` to select a
+repository and `Enter` to open it.
 
 ## Linking modes
 

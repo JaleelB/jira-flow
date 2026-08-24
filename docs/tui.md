@@ -7,6 +7,12 @@ Global keys are `Esc` for back/close, `?` for help, and `Q` to quit where the
 screen is not accepting text or confirming destruction. Every mutation uses the
 same application use case as its headless command.
 
+The interface uses a ticket workbench layout: the active Jira issue is the
+primary ticket, repository and workflow facts live in separate bordered panels,
+status is color-coded, and the available keyboard actions stay in the footer.
+Layouts stack at narrow terminal widths instead of squeezing multi-column
+content together.
+
 | ID | Screen | Main purpose |
 |---|---|---|
 | S1 | Empty State | Explain first initialization |
@@ -31,3 +37,5 @@ state. `Q` is disabled on S14 so accidental quit input cannot confirm removal.
 The global dashboard is registry-based and never scans the filesystem. Missing
 paths stay visible until located or forgotten. Opening/refreshing updates
 disposable `last_seen`/cache data; repository truth continues to come from Git.
+Use `Up`/`Down` or `J`/`K` to move the highlighted repository and `Enter` to
+open it.
