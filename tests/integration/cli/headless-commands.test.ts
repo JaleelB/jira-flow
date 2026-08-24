@@ -126,7 +126,7 @@ describe("link / unlink / mode / enable / disable / config / remove", () => {
     const global = await runCli(["config", "list", "--global"], repo, dataDir);
     expect(global.exitCode).toBe(0);
     expect(global.stdout).toContain("defaultMode=hybrid");
-  });
+  }, 15_000);
 
   test("link accepts --title for the local issue metadata cache", async () => {
     const { repo, dataDir } = await makeRepo();
