@@ -43,4 +43,9 @@ describe("native packaging contract", () => {
       expect(target.binary).toBe(target.os === "win32" ? "jira-flow.exe" : "jira-flow");
     }
   });
+
+  test("only the universal package exposes the jira-flow command", () => {
+    const packagingScript = readFileSync(join(root, "scripts", "package-native.ts"), "utf8");
+    expect(packagingScript.match(/bin: \{ "jira-flow":/g)).toHaveLength(1);
+  });
 });
