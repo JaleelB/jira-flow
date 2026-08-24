@@ -48,7 +48,6 @@ for (const key of targets) {
     os: [platform.os],
     cpu: [platform.cpu],
     files: ["bin", "README.md", "LICENSE"],
-    bin: { "jira-flow": `bin/${platform.binary}` },
     publishConfig: { access: "public", provenance: true },
   });
   nativeTarballs.set(key, pack(stage));
