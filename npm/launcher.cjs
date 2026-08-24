@@ -2,7 +2,7 @@
 "use strict";
 
 const { existsSync, readFileSync } = require("node:fs");
-const { dirname, join } = require("node:path");
+const { dirname, join, toNamespacedPath } = require("node:path");
 const { spawnSync } = require("node:child_process");
 
 const platforms = require("./platforms.json");
@@ -45,7 +45,8 @@ if (!existsSync(binary)) {
   process.exit(1);
 }
 
-const child = spawnSync(binary, process.argv.slice(2), {
+const executable = process.platform === "win32" ? toNamespacedPath(binary) : binary;
+const child = spawnSync(executable, process.argv.slice(2), {
   stdio: "inherit",
   windowsHide: false,
   env: process.env,

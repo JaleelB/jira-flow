@@ -32,6 +32,7 @@ describe("native packaging contract", () => {
     const launcher = readFileSync(join(root, "npm", "launcher.cjs"), "utf8");
     expect(launcher).toContain("require.resolve");
     expect(launcher).toContain("package version mismatch");
+    expect(launcher).toContain("toNamespacedPath");
     expect(launcher).not.toContain("fetch(");
     expect(launcher).not.toContain("shell: true");
   });
