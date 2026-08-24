@@ -113,11 +113,11 @@ describe("GitRunner", () => {
   });
 
   test("timeout raises GitTimeoutError, not GitUnavailableError", async () => {
-    const fixture = join(import.meta.dir, "..", "..", "fixtures", "slow-git.sh");
-    const runner = new GitRunner({ executable: fixture, timeoutMs: 80 });
+    const fixture = join(import.meta.dir, "..", "..", "fixtures", "slow-git.ts");
+    const runner = new GitRunner({ executable: process.execPath, timeoutMs: 80 });
     let caught: unknown;
     try {
-      await runner.run({ cwd: tmpdir(), args: ["status"] });
+      await runner.run({ cwd: tmpdir(), args: [fixture, "status"] });
     } catch (error) {
       caught = error;
     }

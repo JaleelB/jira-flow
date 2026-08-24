@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { chmodSync, mkdtempSync, readlinkSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import fixtures from "../../fixtures/legacy-v0.5/hooks.json";
 import { createTempGitRepository, type TempRepository } from "../../helpers/temp-repository";
 
@@ -90,7 +90,7 @@ describe("JiraFlow v0.5 migration", () => {
     const { repo, dataDir, hooksDir } = await makeRepo();
     symlinkSync("/opt/jiraflow/commitmsg", join(hooksDir, "commit-msg"));
     symlinkSync("/opt/jiraflow/postco", join(hooksDir, "post-checkout"));
-    expect(readlinkSync(join(hooksDir, "commit-msg"))).toBe("/opt/jiraflow/commitmsg");
+    expect(readlinkSync(join(hooksDir, "commit-msg"))).toBe(resolve("/opt/jiraflow/commitmsg"));
 
     const migration = await runCli(["migrate", "--yes"], repo, dataDir);
     expect(migration.exitCode).toBe(0);
