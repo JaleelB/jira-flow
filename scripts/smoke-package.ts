@@ -229,7 +229,11 @@ function installWithBun(env: Record<string, string | undefined>, force = false):
     assert(existsSync(nativePackage), `native smoke package does not exist: ${nativePackage}`);
     runCommand("bun", ["add", "-g", nativePackage, ...flags], env);
   }
-  runCommand("bun", ["add", "-g", tarball, ...flags], env);
+  runCommand(
+    "bun",
+    ["add", "-g", tarball, ...flags, ...(process.platform === "win32" ? ["--omit=optional"] : [])],
+    env,
+  );
 }
 
 function withoutInstallationPath(installation: {
@@ -256,7 +260,7 @@ async function smokeTui(installation: {
     return;
   }
 
-  const child = Bun.spawn([installation.command], {
+  const child = Bun.spawn(commandInvocation(installation.command, []), {
     cwd: repo,
     env: installation.env,
     stdin: "pipe",
@@ -297,21 +301,7 @@ function runCommand(
   env: Record<string, string | undefined>,
   cwd = repo,
 ): { stdout: string; stderr: string } {
-  const invocation =
-    process.platform === "win32" && command.toLowerCase().endsWith(".ps1")
-      ? [
-          "powershell.exe",
-          "-NoLogo",
-          "-NoProfile",
-          "-NonInteractive",
-          "-ExecutionPolicy",
-          "Bypass",
-          "-File",
-          command,
-          ...commandArgs,
-        ]
-      : [command, ...commandArgs];
-  const result = Bun.spawnSync(invocation, {
+  const result = Bun.spawnSync(commandInvocation(command, commandArgs), {
     cwd,
     env,
     stdout: "pipe",
@@ -323,6 +313,22 @@ function runCommand(
     );
   }
   return { stdout: result.stdout.toString(), stderr: result.stderr.toString() };
+}
+
+function commandInvocation(command: string, commandArgs: string[]): string[] {
+  return process.platform === "win32" && command.toLowerCase().endsWith(".ps1")
+    ? [
+        "powershell.exe",
+        "-NoLogo",
+        "-NoProfile",
+        "-NonInteractive",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        command,
+        ...commandArgs,
+      ]
+    : [command, ...commandArgs];
 }
 
 function packageVersion(): string {
