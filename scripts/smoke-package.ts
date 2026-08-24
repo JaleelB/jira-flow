@@ -87,9 +87,10 @@ try {
   );
 
   uninstall(manager, installation);
+  const remainingCommands = await waitForCommandRemoval(dirname(installation.command));
   assert(
-    commandCandidates(dirname(installation.command)).every((candidate) => !existsSync(candidate)),
-    `${manager} uninstall left a command shim behind`,
+    remainingCommands.length === 0,
+    `${manager} uninstall left command shims behind: ${remainingCommands.join(", ")}`,
   );
   writeFileSync(join(repo, "after-uninstall.txt"), "still commits\n", "utf8");
   git(["add", "after-uninstall.txt"]);
@@ -221,6 +222,15 @@ function commandCandidates(binDir: string): string[] {
         join(binDir, name),
       )
     : [join(binDir, "jira-flow")];
+}
+
+async function waitForCommandRemoval(binDir: string): Promise<string[]> {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const remaining = commandCandidates(binDir).filter((candidate) => existsSync(candidate));
+    if (remaining.length === 0) return [];
+    await Bun.sleep(50);
+  }
+  return commandCandidates(binDir).filter((candidate) => existsSync(candidate));
 }
 
 function installWithBun(env: Record<string, string | undefined>, force = false): void {
