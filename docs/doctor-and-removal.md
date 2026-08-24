@@ -40,3 +40,9 @@ Package uninstall and repository removal are intentionally separate. Package
 managers remove only package files and do not search for repositories. A stale
 JiraFlow hook checks the captured executable, falls back to `jira-flow` on
 `PATH`, and otherwise exits successfully without changing the commit.
+
+On Windows, Bun 1.3.14 and 1.4.0 leave their generated, nonfunctional
+`jira-flow.exe` shim after removing the packages. DR-0026 excludes that manager
+path from the supported Windows v1 lifecycle; use npm, pnpm, or a native
+archive. This does not alter JiraFlow's rule that package uninstall never scans
+or mutates repositories.

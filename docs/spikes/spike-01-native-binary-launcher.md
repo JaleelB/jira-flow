@@ -71,6 +71,12 @@ must run in remote CI before release. Linux ARM64 and Windows ARM64 are included
 because the current Bun/OpenTUI toolchain builds them successfully, but native
 execution is likewise a remote-run gate.
 
+The later remote Windows matrix passed npm and pnpm lifecycle smoke and Bun
+install/upgrade/runtime smoke. Bun 1.3.14 and 1.4.0 then removed the installed
+packages but left Bun's nonfunctional generated `jira-flow.exe` shim. DR-0026
+records the exact evidence and amends the Windows Bun support claim rather than
+shipping a repository- or package-manager-mutating workaround.
+
 ## References
 
 - Bun lifecycle scripts and trusted dependencies:

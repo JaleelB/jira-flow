@@ -2496,6 +2496,13 @@ supported only when `node` 18+ is also available. Bun-only users install the
 runtime-free native archive. No lifecycle downloader or non-default Bun linking
 configuration is used.
 
+Remote Windows validation subsequently reproduced a second manager boundary in
+Bun 1.3.14 and 1.4.0: package removal succeeds but Bun's generated,
+nonfunctional `jira-flow.exe` remains. DR-0026 excludes Windows Bun global
+uninstall from the v1 support contract. CI still fails on any installed
+JiraFlow package, functional residual command, or residue beyond that exact
+manager-owned shim.
+
 ---
 
 # 53. Release Automation
@@ -3155,8 +3162,9 @@ Unless an implementation spike proves one impossible or unsafe:
 
 # 67. Required Technical Spike
 
-SPIKE-01 is complete; ADR-0009 selects optional platform packages and DR-0023
-records the Bun-only launcher limitation discovered by the final validation.
+SPIKE-01 is complete; ADR-0009 selects optional platform packages, DR-0023
+records the Bun-only launcher limitation, and DR-0026 records the Windows Bun
+uninstall limitation discovered by remote native validation.
 
 ## SPIKE-01 — Native binary package-manager launcher
 

@@ -13,7 +13,9 @@ bun add -g jira-flow
 
 The package-manager launcher requires Node 18 or newer. npm and pnpm already
 have Node. The Bun command is supported when `node` 18+ is also on `PATH`; a
-Bun-only machine should use a native archive (DR-0023).
+Bun-only machine should use a native archive (DR-0023). On Windows, use npm,
+pnpm, or a native archive: Bun 1.3.14 and 1.4.0 remove the packages but leave a
+nonfunctional `jira-flow.exe` package-manager shim after uninstall (DR-0026).
 
 The launcher selects only the current OS/architecture, verifies that the
 universal and native packages have the same version, and directly starts the
@@ -77,3 +79,8 @@ bun remove -g jira-flow
 It never crawls or cleans repositories. Existing JiraFlow hook shims become
 non-blocking no-ops when the executable is absent. For explicit repository
 cleanup, run `jira-flow remove --yes` in each repository before uninstalling.
+
+The Bun command is a supported lifecycle path on Linux and macOS. On Windows,
+use npm, pnpm, or remove the native-archive executable yourself; Bun's residual
+shim is package-manager-owned and JiraFlow will not delete it through a
+lifecycle script.
