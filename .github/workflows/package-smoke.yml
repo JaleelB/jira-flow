@@ -95,6 +95,12 @@ jobs:
         if: runner.os == 'Windows' && matrix.manager == 'bun'
         run: bun run package:native
 
+      - name: Set up Bun package manager under test
+        if: matrix.manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+
       - name: Run global package smoke
         shell: bash
         run: |
