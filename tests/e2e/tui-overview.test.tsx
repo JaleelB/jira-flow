@@ -134,10 +134,12 @@ describe("App routing", () => {
       />,
       { width: 64, height: 20 },
     );
-    const frame = await captureWhenReady(setup, "JIRAFLOW");
+    const frame = await captureWhenReady(setup, "Set up JiraFlow");
     expect(frame).toContain("JIRAFLOW");
     expect(frame).toContain("S2");
-    expect(frame).toContain("Unconfigured Repository");
+    // OpenTUI uses border glyphs as separators when a title sits in a frame.
+    expect(frame).toContain("Unconfigured");
+    expect(frame).toContain("Repository");
     expect(frame).toContain("Set up JiraFlow");
     setup.renderer.destroy();
   });
