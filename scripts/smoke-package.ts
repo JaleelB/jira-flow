@@ -115,7 +115,7 @@ function install(selected: Manager): { command: string; env: Record<string, stri
   if (selected === "pnpm") {
     const pnpmHome = join(root, "pnpm home with spaces");
     const globalDir = join(root, "pnpm global with spaces");
-    const binDir = process.platform === "win32" ? pnpmHome : join(pnpmHome, "bin");
+    const binDir = join(pnpmHome, "bin");
     mkdirSync(binDir, { recursive: true });
     const env = {
       ...baseEnv,
@@ -136,7 +136,7 @@ function install(selected: Manager): { command: string; env: Record<string, stri
     BUN_INSTALL: bunInstall,
     PATH: `${binDir}${pathDelimiter()}${baseEnv.PATH}`,
   };
-  runCommand("bun", ["add", "-g", tarball, "--ignore-scripts", "--no-cache"], env);
+  installWithBun(env);
   return { command: globalCommand(binDir), env };
 }
 
@@ -166,11 +166,7 @@ function upgrade(
       installation.env,
     );
   } else {
-    runCommand(
-      "bun",
-      ["add", "-g", tarball, "--ignore-scripts", "--no-cache", "--force"],
-      installation.env,
-    );
+    installWithBun(installation.env, true);
   }
 }
 
@@ -198,7 +194,11 @@ function uninstall(
       installation.env,
     );
   } else {
-    runCommand("bun", ["remove", "-g", "jira-flow", "--ignore-scripts"], installation.env);
+    const packages =
+      process.platform === "win32"
+        ? ["jira-flow", `jira-flow-${process.platform}-${process.arch}`]
+        : ["jira-flow"];
+    runCommand("bun", ["remove", "-g", ...packages, "--ignore-scripts"], installation.env);
   }
 }
 
@@ -210,10 +210,26 @@ function globalCommand(binDir: string): string {
 
 function commandCandidates(binDir: string): string[] {
   return process.platform === "win32"
-    ? ["jira-flow.exe", "jira-flow.cmd", "jira-flow.ps1", "jira-flow"].map((name) =>
+    ? ["jira-flow.exe", "jira-flow.ps1", "jira-flow.cmd", "jira-flow"].map((name) =>
         join(binDir, name),
       )
     : [join(binDir, "jira-flow")];
+}
+
+function installWithBun(env: Record<string, string | undefined>, force = false): void {
+  const flags = ["--ignore-scripts", "--no-cache", ...(force ? ["--force"] : [])];
+  if (process.platform === "win32") {
+    // Bun 1.3.x cannot resolve an unpublished optional file-tarball graph on
+    // Windows. Co-installing the exact native tarball models the two packages
+    // the registry supplies after publication while keeping this smoke local.
+    const nativePackage = join(
+      dirname(tarball),
+      `jira-flow-${process.platform}-${process.arch}-${packageVersion()}.tgz`,
+    );
+    assert(existsSync(nativePackage), `native smoke package does not exist: ${nativePackage}`);
+    runCommand("bun", ["add", "-g", nativePackage, ...flags], env);
+  }
+  runCommand("bun", ["add", "-g", tarball, ...flags], env);
 }
 
 function withoutInstallationPath(installation: {
@@ -281,7 +297,21 @@ function runCommand(
   env: Record<string, string | undefined>,
   cwd = repo,
 ): { stdout: string; stderr: string } {
-  const result = Bun.spawnSync([command, ...commandArgs], {
+  const invocation =
+    process.platform === "win32" && command.toLowerCase().endsWith(".ps1")
+      ? [
+          "powershell.exe",
+          "-NoLogo",
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          command,
+          ...commandArgs,
+        ]
+      : [command, ...commandArgs];
+  const result = Bun.spawnSync(invocation, {
     cwd,
     env,
     stdout: "pipe",
