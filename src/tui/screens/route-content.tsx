@@ -250,7 +250,7 @@ function RepositoryWorkbench({
   compact: boolean;
 }) {
   const workflow = (
-    <Panel title="Workflow" flexGrow={1}>
+    <Panel title="Workflow" width={compact ? "100%" : "44%"} flexGrow={compact ? 1 : undefined}>
       <FieldRow
         label="JiraFlow"
         value={status.enabled ? "Enabled" : "Disabled"}
@@ -269,6 +269,7 @@ function RepositoryWorkbench({
   );
   const repository = (
     <Panel title="Repository" flexGrow={1}>
+      <FieldRow label="Name" value={status.repoName} compact />
       <FieldRow label="Branch" value={status.branch ?? "detached HEAD"} tone="info" compact />
       <FieldRow label="Branch issue" value={status.branchIssue ?? "none"} compact />
       <FieldRow label="Saved issue" value={status.linkedIssue ?? "none"} compact />
@@ -467,6 +468,7 @@ function PrTitle({ status }: { status: RepositoryStatusView }) {
 function Doctor({ data, compact }: { data: DoctorResult; compact: boolean }) {
   const attention = data.checks.filter((check) => check.status !== "pass");
   const passing = data.checks.filter((check) => check.status === "pass");
+  const visibleChecks = attention.length > 0 ? attention : passing;
   const overallTone: Tone =
     data.overall === "healthy" ? "ok" : data.overall === "warning" ? "warn" : "fail";
   return (
@@ -495,13 +497,46 @@ function Doctor({ data, compact }: { data: DoctorResult; compact: boolean }) {
           <text style={{ fg: palette.info, marginTop: 1 }}>{data.repoPath}</text>
         ) : null}
       </Panel>
-      <Panel title={attention.length > 0 ? "Needs attention" : "Checks"} flexGrow={1}>
-        {(attention.length > 0 ? attention : passing).map((check) => (
-          <DoctorRow key={check.id} check={check} />
-        ))}
-        {data.checks.length === 0 ? (
-          <text style={{ fg: palette.mute }}>No diagnostic checks returned.</text>
-        ) : null}
+      <Panel
+        title={`${attention.length > 0 ? "Needs attention" : "Checks"} · ${visibleChecks.length}`}
+        flexGrow={1}
+      >
+        <scrollbox
+          focused
+          style={{
+            flexGrow: 1,
+            width: "100%",
+            scrollX: false,
+            scrollY: true,
+            stickyScroll: false,
+            rootOptions: { backgroundColor: palette.panel },
+            wrapperOptions: { backgroundColor: palette.panel },
+            viewportOptions: { backgroundColor: palette.panel },
+            contentOptions: {
+              flexDirection: "column",
+              paddingRight: 1,
+              backgroundColor: palette.panel,
+            },
+            verticalScrollbarOptions: {
+              showArrows: true,
+              trackOptions: {
+                foregroundColor: palette.info,
+                backgroundColor: palette.surface,
+              },
+              arrowOptions: {
+                foregroundColor: palette.info,
+                backgroundColor: palette.panel,
+              },
+            },
+          }}
+        >
+          {visibleChecks.map((check) => (
+            <DoctorRow key={check.id} check={check} />
+          ))}
+          {data.checks.length === 0 ? (
+            <text style={{ fg: palette.mute }}>No diagnostic checks returned.</text>
+          ) : null}
+        </scrollbox>
       </Panel>
     </box>
   );

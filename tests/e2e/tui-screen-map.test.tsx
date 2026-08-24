@@ -24,6 +24,14 @@ const routes: TuiRoute[] = [
   { name: "remove-confirmation", repoId: "repo-1", repoPath: "/repo" },
 ];
 
+function snapshotFrame(frame: string): string {
+  return frame
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .join("\n")
+    .trimEnd();
+}
+
 const services: TuiServices = {
   getStartupContext: async () => ({ kind: "empty-state" }),
   getRepositoryStatus: async ({ path }) => ({
@@ -175,8 +183,9 @@ describe("complete TUI screen map", () => {
     expect(frame).toContain("OPS-42");
     expect(frame).toContain("WORKFLOW");
     expect(frame).toContain("REPOSITORY");
+    expect(frame).toMatch(/Name\s+repo/);
     expect(frame).toContain("feat/ABC-123-login");
-    expect(frame).toMatchSnapshot();
+    expect(snapshotFrame(frame)).toMatchSnapshot();
     setup.renderer.destroy();
   });
 
@@ -254,6 +263,57 @@ describe("complete TUI screen map", () => {
     setup.renderer.destroy();
   });
 
+  test("keeps a long Doctor ledger inside its panel and scrolls through every check", async () => {
+    const checks = [
+      "git.repository",
+      "config.valid",
+      "worktree.state",
+      "registry.sync",
+      "hooks.path",
+      "legacy.v0.5",
+      "hooks.integration",
+      "hooks.ownership",
+      "hooks.foreign-preserved",
+      "binary.reachable",
+      "issue.pattern",
+      "mode.valid",
+      "active-issue.resolve",
+    ].map((id) => ({ id, status: "pass" as const, detail: `detail for ${id}` }));
+    const setup = await testRender(
+      <App
+        services={{
+          ...services,
+          runDoctor: async ({ path }) => ({
+            repoPath: path,
+            overall: "healthy",
+            checks,
+          }),
+        }}
+        initialContext={{ kind: "empty-state" }}
+        initialRoute={{ name: "doctor", repoPath: "/repo" }}
+        onQuit={() => {}}
+      />,
+      { width: 100, height: 28 },
+    );
+    await setup.waitForVisualIdle();
+
+    const firstFrame = setup.captureCharFrame();
+    expect(firstFrame).toContain("CHECKS · 13");
+    expect(firstFrame).toContain("↑↓ Scroll checks");
+    expect(firstFrame).not.toContain("Active issue resolution");
+
+    await act(async () => {
+      for (let index = 0; index < 30; index += 1) setup.mockInput.pressArrow("down");
+      await setup.flush();
+    });
+    await setup.waitForVisualIdle();
+
+    const scrolledFrame = setup.captureCharFrame();
+    expect(scrolledFrame).toContain("Active issue resolution");
+    expect(scrolledFrame).toContain("↑↓ Scroll checks");
+    setup.renderer.destroy();
+  });
+
   test("stacks mode controls without losing actions in a narrow terminal", async () => {
     const setup = await testRender(
       <App
@@ -270,7 +330,7 @@ describe("complete TUI screen map", () => {
     expect(frame).toContain("2 Branch");
     expect(frame).toContain("3 Manual");
     expect(frame).toContain("Esc Cancel");
-    expect(frame).toMatchSnapshot();
+    expect(snapshotFrame(frame)).toMatchSnapshot();
     setup.renderer.destroy();
   });
 });

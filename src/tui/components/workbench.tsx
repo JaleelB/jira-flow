@@ -105,6 +105,7 @@ export function Panel({
         width,
         flexGrow,
         flexDirection: "column",
+        overflow: "hidden",
         border: true,
         borderStyle: "single",
         borderColor: tone === "muted" ? palette.rule : toneColor(tone),

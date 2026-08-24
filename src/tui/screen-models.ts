@@ -108,7 +108,7 @@ export function screenDefinition(route: TuiRoute): ScreenDefinition {
         id: "S11",
         title: "Doctor",
         description: route.repoPath ? `Repository: ${route.repoPath}` : "Global JiraFlow health",
-        actions: ["[R] Repair / refresh", "[Esc] Back"],
+        actions: ["[↑↓] Scroll checks", "[R] Repair / refresh", "[Esc] Back"],
       };
     case "global-settings":
       return {
