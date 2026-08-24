@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { GitRunner } from "../../src/infrastructure/git/git-runner";
+import { canonicalizePath } from "../../src/infrastructure/platform/path-identity";
 import { createIsolatedGitEnvironment, type GitEnvironment } from "./git-environment";
 
 /**
@@ -37,7 +38,7 @@ export function createTempGitRepository(options: CreateTempRepositoryOptions = {
   const branch = options.initialBranch ?? "main";
   const runner = new GitRunner();
   const gitEnv = createIsolatedGitEnvironment();
-  const root = mkdtempSync(join(tmpdir(), `jiraflow-repo-${branch}-`));
+  const root = canonicalizePath(mkdtempSync(join(tmpdir(), `jiraflow-repo-${branch}-`)));
 
   const spawnSync = (args: string[]) =>
     Bun.spawnSync(["git", ...args], {
@@ -98,7 +99,7 @@ export function createTempGitRepository(options: CreateTempRepositoryOptions = {
 
 /** Creates a temporary directory that is not a Git repository. */
 export function createTempNonGitDirectory(): { path: string; cleanup: () => void } {
-  const path = mkdtempSync(join(tmpdir(), "jiraflow-non-repo-"));
+  const path = canonicalizePath(mkdtempSync(join(tmpdir(), "jiraflow-non-repo-")));
   return {
     path,
     cleanup(): void {

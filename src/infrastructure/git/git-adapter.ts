@@ -1,5 +1,6 @@
 import { isAbsolute, resolve } from "node:path";
 import type { GitPort, GitRepositoryContext, HooksContext } from "../../application/ports/git.port";
+import { canonicalizePath } from "../platform/path-identity";
 import type { GitRunner } from "./git-runner";
 import { discoverRepository, getCurrentBranch } from "./repository-discovery";
 
@@ -52,7 +53,7 @@ export class GitAdapter implements GitPort {
         // 3./4. absolute → use as-is; relative → resolve against the
         // worktree root, which is Git's hook execution context for
         // supported non-bare repositories.
-        const hooksDir = isAbsolute(value) ? value : resolve(repo.root, value);
+        const hooksDir = canonicalizePath(isAbsolute(value) ? value : resolve(repo.root, value));
         return this.hooksContext(hooksDir, origin);
       }
     }
@@ -69,7 +70,7 @@ export class GitAdapter implements GitPort {
   }
 
   private hooksContext(hooksDir: string, origin: HooksContext["hooksPathOrigin"]): HooksContext {
-    const canonical = resolve(hooksDir);
+    const canonical = canonicalizePath(hooksDir);
     return {
       hooksDir: canonical,
       hooksPathOrigin: origin,

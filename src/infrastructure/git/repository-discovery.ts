@@ -4,6 +4,7 @@ import {
   GitUnavailableError,
   NotAGitRepositoryError,
 } from "../../domain/errors";
+import { canonicalizePath } from "../platform/path-identity";
 import type { GitRunner } from "./git-runner";
 
 /**
@@ -52,9 +53,9 @@ export async function discoverRepository(
     throw new GitUnavailableError("git rev-parse failed during repository discovery");
   }
 
-  const root = toplevel.stdout.trim();
-  const resolvedGitDir = gitDir.stdout.trim();
-  const resolvedCommonGitDir = commonGitDir.stdout.trim();
+  const root = canonicalizePath(toplevel.stdout.trim());
+  const resolvedGitDir = canonicalizePath(gitDir.stdout.trim());
+  const resolvedCommonGitDir = canonicalizePath(commonGitDir.stdout.trim());
 
   return {
     root,
