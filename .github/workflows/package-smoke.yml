@@ -15,8 +15,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  windows-native:
+    name: Build Windows x64 artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install locked dependencies
+        run: bun ci
+
+      - name: Cross-compile Windows x64 executable
+        run: bun run build:native -- --target win32-x64
+
+      - name: Upload Windows x64 executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: jira-flow-win32-x64
+          path: dist/native/win32-x64/jira-flow.exe
+          if-no-files-found: error
+          retention-days: 1
+
   package-smoke:
     name: ${{ matrix.os }} / ${{ matrix.manager }}
+    needs: windows-native
     strategy:
       fail-fast: false
       matrix:
@@ -46,10 +74,22 @@ jobs:
       - name: Install locked dependencies
         run: bun ci
 
+      - name: Download Windows x64 executable
+        if: runner.os == 'Windows'
+        uses: actions/download-artifact@v4
+        with:
+          name: jira-flow-win32-x64
+          path: dist/native/win32-x64
+
       - name: Build host-native package
+        if: runner.os != 'Windows'
         run: |
           bun run build:native
           bun run package:native -- --local
+
+      - name: Package Windows x64 artifact
+        if: runner.os == 'Windows'
+        run: bun run package:native -- --local
 
       - name: Run global package smoke
         shell: bash

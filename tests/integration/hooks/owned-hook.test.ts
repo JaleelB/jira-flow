@@ -48,8 +48,10 @@ describe("HookManager.installOwned", () => {
     expect(content).toContain('hook commit-msg "$1"');
     expect(content).toContain("command -v jira-flow");
 
-    const mode = statSync(result.hookPath).mode;
-    expect(mode & 0o111).not.toBe(0);
+    if (process.platform !== "win32") {
+      const mode = statSync(result.hookPath).mode;
+      expect(mode & 0o111).not.toBe(0);
+    }
   });
 
   test("second install is idempotent: no duplicate managed block", async () => {
