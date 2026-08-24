@@ -20,6 +20,14 @@ export const palette = {
   fail: "#D45C4A",
   /** Screen fill in the TUI. */
   surface: "#161410",
+  /** Recessed terminal canvas around the working surface. */
+  canvas: "#0D0C0A",
+  /** Quiet panel fill used to separate controls from content. */
+  panel: "#201D18",
+  /** Selected row and focused input fill. */
+  selection: "#30291D",
+  /** Cool informational accent, used sparingly for paths and guidance. */
+  info: "#63A6B8",
   /** Hairline rules, not a second accent. */
   rule: "#3A362E",
 } as const;

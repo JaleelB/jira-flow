@@ -44,15 +44,15 @@ export function screenDefinition(route: TuiRoute): ScreenDefinition {
         title: "Repository Overview",
         description: route.repoPath,
         actions: [
-          "[L] Link issue",
-          "[U] Clear linked issue",
-          "[M] Change mode",
-          "[P] Generate PR title",
-          "[W] Workflow settings",
+          "[L] Link",
+          "[U] Unlink",
+          "[M] Mode",
+          "[P] PR title",
+          "[W] Settings",
           "[D] Doctor",
-          "[E] Enable / disable",
-          "[Delete] Remove JiraFlow",
-          "[G] Global dashboard",
+          "[E] Toggle",
+          "[Delete] Remove",
+          "[G] Dashboard",
         ],
       };
     case "setup":

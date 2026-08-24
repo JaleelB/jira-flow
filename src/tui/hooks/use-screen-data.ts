@@ -6,7 +6,10 @@ export type AsyncView<T> =
   | { status: "error"; message: string };
 
 export function useScreenData<T>(loader: () => Promise<T>, dependencyKey: string) {
-  const [view, setView] = useState<AsyncView<T>>({ status: "loading" });
+  const [state, setState] = useState<{ key: string; view: AsyncView<T> }>({
+    key: dependencyKey,
+    view: { status: "loading" },
+  });
   const [revision, setRevision] = useState(0);
   const loaderRef = useRef(loader);
   loaderRef.current = loader;
@@ -14,22 +17,26 @@ export function useScreenData<T>(loader: () => Promise<T>, dependencyKey: string
   // biome-ignore lint/correctness/useExhaustiveDependencies: the key and revision intentionally trigger the ref-backed loader.
   useEffect(() => {
     let active = true;
-    setView({ status: "loading" });
+    setState({ key: dependencyKey, view: { status: "loading" } });
     void loaderRef
       .current()
       .then((data) => {
-        if (active) setView({ status: "ready", data });
+        if (active) setState({ key: dependencyKey, view: { status: "ready", data } });
       })
       .catch((error: unknown) => {
         if (active)
-          setView({
-            status: "error",
-            message: error instanceof Error ? error.message : String(error),
+          setState({
+            key: dependencyKey,
+            view: {
+              status: "error",
+              message: error instanceof Error ? error.message : String(error),
+            },
           });
       });
     return () => {
       active = false;
     };
   }, [dependencyKey, revision]);
+  const view: AsyncView<T> = state.key === dependencyKey ? state.view : { status: "loading" };
   return { view, reload };
 }

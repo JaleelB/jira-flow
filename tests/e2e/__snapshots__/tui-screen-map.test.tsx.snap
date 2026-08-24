@@ -1,0 +1,67 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`complete TUI screen map gives the repository overview a ticket-led workbench hierarchy 1`] = `
+"                                                                                                    
+ ╭────────────────────────────────────────────────────────────────────────────────────────────────╮ 
+ │  ◆ JIRAFLOW / Repository Overview                                        HYBRID · HEALTHY  S4  │ 
+ │  /repo                                                                                         │ 
+ │────────────────────────────────────────────────────────────────────────────────────────────────│ 
+ │                                                                                                │ 
+ │  ACTIVE TICKET                                                                                 │ 
+ │  ╭──────────────────────────────────────────────────────────────────────────────────────────╮  │ 
+ │  │  OPS-42                                                                                  │  │ 
+ │  │  resolved from override                                                                  │  │ 
+ │  ╰──────────────────────────────────────────────────────────────────────────────────────────╯  │ 
+ │  feat/ABC-123-login ──▶ OPS-42 ──▶ next commit                                                 │ 
+ │  ┌─ WORKFLOW ───────────────────────────┐ ┌─ REPOSITORY ────────────────────────────────────┐  │ 
+ │  │ JiraFlow      Enabled                │ │ Branch        feat/ABC-123-login                │  │ 
+ │  │ Linking mode  Hybrid                 │ │ Branch issue  ABC-123                           │  │ 
+ │  │ Commit format footer                 │ │ Saved issue   OPS-42                            │  │ 
+ │  │ Hook          Healthy                │ │ Issue pattern [A-Z][A-Z0-9]+-\\d+                │  │ 
+ │  │                                      │ │                                                 │  │ 
+ │  │                                      │ │                                                 │  │ 
+ │  │                                      │ │                                                 │  │ 
+ │  │                                      │ │                                                 │  │ 
+ │  │                                      │ │                                                 │  │ 
+ │  │                                      │ │                                                 │  │ 
+ │  └──────────────────────────────────────┘ └─────────────────────────────────────────────────┘  │ 
+ │                                                                                                │ 
+ │────────────────────────────────────────────────────────────────────────────────────────────────│ 
+ │  L Link  U Unlink  M Mode  P PR title  W Settings  D Doctor  E Toggle  Delete Remove           │ 
+ │  G Dashboard  Esc Back  Q Quit  ? Help                                                         │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                    
+"
+`;
+
+exports[`complete TUI screen map stacks mode controls without losing actions in a narrow terminal 1`] = `
+"                                                            
+ ╭────────────────────────────────────────────────────────╮ 
+ │  ◆ JIRAFLOW / Mode Selection                       S8  │ 
+ │  Saved linked issues are preserved when inactive.      │ 
+ │────────────────────────────────────────────────────────│ 
+ │                                                        │ 
+ │ ┌────────────────────────────────────────────────────┐ │ 
+ │ │ 1 Hybrid                                           │ │ 
+ │ │ Saved link first, then branch                      │ │ 
+ │ └────────────────────────────────────────────────────┘ │ 
+ │                                                        │ 
+ │ ┌────────────────────────────────────────────────────┐ │ 
+ │ │ 2 Branch                                           │ │ 
+ │ │ Derive the issue from the branch                   │ │ 
+ │ └────────────────────────────────────────────────────┘ │ 
+ │                                                        │ 
+ │ ┌────────────────────────────────────────────────────┐ │ 
+ │ │ 3 Manual                                           │ │ 
+ │ │ Use only the saved linked issue                    │ │ 
+ │ └────────────────────────────────────────────────────┘ │ 
+ │                                                        │ 
+ │ Changing mode never deletes the saved linked issue.    │ 
+ │                                                        │ 
+ │────────────────────────────────────────────────────────│ 
+ │  1 Hybrid  2 Branch  3 Manual  Esc Cancel  Q Quit      │ 
+ │  ? Help                                                │ 
+ ╰────────────────────────────────────────────────────────╯ 
+                                                            
+"
+`;

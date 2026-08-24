@@ -1,25 +1,22 @@
-import { useKeyboard } from "@opentui/react";
-import { useMemo, useState } from "react";
+import { useKeyboard, useTerminalDimensions } from "@opentui/react";
+import { useEffect, useState } from "react";
 import type { DoctorResult } from "../../application/models/doctor-result";
 import type { RepositoryListView } from "../../application/models/repository-summary";
 import type { RepositoryStatusView } from "../../application/models/status-view";
-import type { GlobalSettings } from "../../application/ports/settings.port";
 import type { LegacyInspection } from "../../application/use-cases/inspect-legacy-repository";
-import type { ManageConfig } from "../../application/use-cases/manage-config";
-import { palette } from "../../ui/theme";
 import type { TuiServices } from "../app-context";
+import {
+  ActionBar,
+  AppShell,
+  InputDock,
+  NoticeBar,
+  ScreenHeader,
+  type Tone,
+} from "../components/workbench";
 import { useScreenData } from "../hooks/use-screen-data";
 import type { NavigationAction, TuiRoute } from "../navigation";
 import { screenDefinition } from "../screen-models";
-
-type RouteData =
-  | RepositoryListView
-  | RepositoryStatusView
-  | DoctorResult
-  | GlobalSettings
-  | Awaited<ReturnType<ManageConfig["execute"]>>
-  | LegacyInspection
-  | null;
+import { RouteContent, type RouteData } from "./route-content";
 
 export function ManagementScreen({
   route,
@@ -40,6 +37,9 @@ export function ManagementScreen({
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<"hybrid" | "branch" | "manual">("hybrid");
   const [setupOverrides, setSetupOverrides] = useState<Record<string, string>>({});
+  const [selectedRepository, setSelectedRepository] = useState(0);
+  const { width } = useTerminalDimensions();
+  const compact = width < 68;
   const inputRoute = [
     "link-issue",
     "workflow-settings",
@@ -48,6 +48,12 @@ export function ManagementScreen({
     "missing-repository",
     "setup-customization",
   ].includes(route.name);
+
+  useEffect(() => {
+    if (route.name !== "global-dashboard" || view.status !== "ready") return;
+    const repositories = (view.data as RepositoryListView).repositories;
+    setSelectedRepository((current) => Math.max(0, Math.min(current, repositories.length - 1)));
+  }, [route.name, view]);
 
   const mutate = async (action: () => Promise<void>) => {
     setBusy(true);
@@ -74,12 +80,20 @@ export function ManagementScreen({
         dispatch({ type: "push", route: { name: "setup", repoPath: route.repoPath } });
       if (name === "g") dispatch({ type: "push", route: { name: "global-dashboard" } });
     } else if (route.name === "global-dashboard") {
+      const repositories = readyData<RepositoryListView>(view)?.repositories ?? [];
+      if (name === "up" || name === "k")
+        setSelectedRepository((current) => Math.max(0, current - 1));
+      if (name === "down" || name === "j")
+        setSelectedRepository((current) =>
+          Math.min(Math.max(0, repositories.length - 1), current + 1),
+        );
       if (name === "r") void reload();
       if (name === "d") dispatch({ type: "push", route: { name: "doctor" } });
       if (name === "s") dispatch({ type: "push", route: { name: "global-settings" } });
       if (name === "a")
         setNotice("Run `jira-flow init <path> --yes`, or launch JiraFlow inside the repository.");
-      if (name === "return" || name === "enter") openFirstRepository(view, dispatch);
+      if (name === "return" || name === "enter")
+        openSelectedRepository(view, selectedRepository, dispatch);
     } else if (route.name === "repository-overview") {
       if (name === "l") {
         const status = readyData<RepositoryStatusView>(view);
@@ -265,52 +279,44 @@ export function ManagementScreen({
     setInput("");
   };
 
-  const body = useMemo(
-    () => [...staticRouteLines(route, mode, setupOverrides), ...renderData(view)],
-    [route, mode, setupOverrides, view],
-  );
+  const context = headerContext(route, view);
+  const escapeAction = definition.actions.find((action) => action.startsWith("[Esc]"));
+  const actions = [
+    ...definition.actions.filter((action) => !action.includes("[Esc]") && !action.includes("[Q]")),
+    escapeAction ?? (definition.destructive ? "[Esc] Cancel" : "[Esc] Back"),
+    ...(!definition.destructive && !inputRoute ? ["[Q] Quit"] : []),
+  ];
+  const actionCharacters = actions.reduce((total, action) => total + action.length + 3, 9);
+  const actionBarHeight = Math.max(3, Math.ceil(actionCharacters / Math.max(24, width - 8)) + 1);
   return (
-    <box
-      style={{
-        flexDirection: "column",
-        padding: 1,
-        width: "100%",
-        height: "100%",
-        backgroundColor: palette.surface,
-      }}
-    >
-      <text style={{ fg: palette.ticket }}>{definition.id} · JIRAFLOW</text>
-      <text style={{ fg: palette.ink }}>{definition.title}</text>
-      <text style={{ fg: palette.mute }}>{definition.description}</text>
-      <text> </text>
-      {busy ? <text style={{ fg: palette.ticket }}>Working…</text> : null}
-      {body.map((line) => (
-        <text key={line} style={{ fg: palette.ink }}>
-          {line}
-        </text>
-      ))}
+    <AppShell>
+      <ScreenHeader
+        screenId={definition.id}
+        title={definition.title}
+        description={definition.description}
+        context={context}
+      />
+      <box style={{ flexGrow: 1, flexDirection: "column", overflow: "hidden" }}>
+        <RouteContent
+          route={route}
+          view={view}
+          compact={compact}
+          selectedRepository={selectedRepository}
+          mode={mode}
+          setupOverrides={setupOverrides}
+        />
+      </box>
       {inputRoute ? (
-        <input
-          focused
+        <InputDock
           value={input}
           placeholder={inputPlaceholder(route)}
           onInput={setInput}
-          onSubmit={submit as never}
+          onSubmit={submit}
         />
       ) : null}
-      {notice ? (
-        <text style={{ fg: notice.startsWith("Error") ? palette.fail : palette.ticket }}>
-          {notice}
-        </text>
-      ) : null}
-      <text> </text>
-      {definition.actions.map((action) => (
-        <text key={action} style={{ fg: palette.mute }}>
-          {action}
-        </text>
-      ))}
-      <text style={{ fg: palette.mute }}>[Esc] Back [?] Help</text>
-    </box>
+      <NoticeBar message={notice} busy={busy} />
+      <ActionBar actions={actions} destructive={definition.destructive} height={actionBarHeight} />
+    </AppShell>
   );
 }
 
@@ -341,72 +347,20 @@ function readyData<T>(view: ReturnType<typeof useScreenData<RouteData>>["view"])
   return view.status === "ready" ? (view.data as T) : null;
 }
 
-function renderData(view: ReturnType<typeof useScreenData<RouteData>>["view"]): string[] {
-  if (view.status === "loading") return ["Loading…"];
-  if (view.status === "error")
-    return [`Error: ${view.message}`, "Press R to retry where available."];
-  const data = view.data;
-  if (data === null) return [];
-  if ("repositories" in data)
-    return data.repositories.length === 0
-      ? ["No repositories registered."]
-      : data.repositories.map(
-          (repo) =>
-            `${repo.displayName.padEnd(18)} ${(repo.mode ?? "—").padEnd(8)} ${(repo.activeIssue ?? "—").padEnd(12)} ${repo.health}`,
-        );
-  if ("legacyHooks" in data)
-    return data.detected
-      ? [
-          "Legacy JiraFlow v0.5 integration detected.",
-          ...data.changes.map((change) => `• ${change}`),
-          ...(data.ambiguousPaths.length > 0
-            ? data.ambiguousPaths.map((path) => `Cannot prove ownership: ${path}`)
-            : []),
-        ]
-      : [];
-  if ("checks" in data)
-    return [
-      `Overall: ${data.overall}`,
-      ...data.checks.map(
-        (check) =>
-          `${check.status === "pass" ? "✓" : check.status === "warning" ? "!" : "✗"} ${check.id}${check.detail ? ` — ${check.detail}` : ""}`,
-      ),
-    ];
-  if ("repoPath" in data)
-    return [
-      `JiraFlow: ${data.enabled ? "Enabled" : "Disabled"}`,
-      `Mode: ${data.mode}`,
-      `Active issue: ${data.activeIssue?.key ?? "—"}`,
-      `Saved linked issue: ${data.linkedIssue ?? "—"}`,
-      `Active source: ${data.activeIssue?.source ?? "—"}`,
-      `Current branch: ${data.branch ?? "detached"}`,
-      `Integration: ${data.integration.status}`,
-      `Commit format: ${data.commitFormat}`,
-      `Issue pattern: ${data.issuePattern}`,
-    ];
-  if ("effective" in data)
-    return [
-      `Issue pattern: ${data.effective.issuePattern} (${data.sources.issuePattern})`,
-      `Commit format: ${data.effective.commitFormat} (${data.sources.commitFormat})`,
-      `PR title template: ${data.effective.prTitleTemplate} (${data.sources.prTitleTemplate})`,
-      `Date format: ${data.effective.dateFormat} (${data.sources.dateFormat})`,
-    ];
-  return Object.entries(data).map(([key, value]) => `${key}: ${String(value)}`);
-}
-
-function openFirstRepository(
+function openSelectedRepository(
   view: ReturnType<typeof useScreenData<RouteData>>["view"],
+  selected: number,
   dispatch: (action: NavigationAction) => void,
 ) {
   const data = readyData<RepositoryListView>(view);
-  const first = data?.repositories[0];
-  if (!first) return;
+  const repository = data?.repositories[selected];
+  if (!repository) return;
   dispatch({
     type: "push",
     route:
-      first.health === "missing"
-        ? { name: "missing-repository", repoId: first.id, repoPath: first.path }
-        : { name: "repository-overview", repoId: first.id, repoPath: first.path },
+      repository.health === "missing"
+        ? { name: "missing-repository", repoId: repository.id, repoPath: repository.path }
+        : { name: "repository-overview", repoId: repository.id, repoPath: repository.path },
   });
 }
 
@@ -452,30 +406,6 @@ async function migrateLegacy(
   });
 }
 
-function staticRouteLines(
-  route: TuiRoute,
-  mode: "hybrid" | "branch" | "manual",
-  overrides: Record<string, string>,
-): string[] {
-  if (route.name === "empty-state")
-    return ["To get started:", "  cd <your-project>", "  jira-flow init"];
-  if (route.name === "unconfigured-repo") return ["JiraFlow is not configured."];
-  if (route.name === "setup")
-    return [
-      `Repository: ${route.repoPath}`,
-      "Default behavior: Hybrid",
-      "Issue detection: ABC-123 style Jira keys",
-      "Commit integration: commit-msg",
-      "Commit reference style: Footer",
-    ];
-  if (route.name === "setup-customization")
-    return [
-      `Mode: ${mode}`,
-      ...Object.entries(overrides).map(([key, value]) => `${key}: ${value}`),
-    ];
-  return [];
-}
-
 function inputPlaceholder(route: TuiRoute): string {
   switch (route.name) {
     case "link-issue":
@@ -493,4 +423,43 @@ function inputPlaceholder(route: TuiRoute): string {
     default:
       return "";
   }
+}
+
+function headerContext(
+  route: TuiRoute,
+  view: ReturnType<typeof useScreenData<RouteData>>["view"],
+): { label: string; tone: Tone } | undefined {
+  if (view.status !== "ready" || view.data === null) return undefined;
+  if (route.name === "repository-overview") {
+    const status = view.data as RepositoryStatusView;
+    return status.enabled
+      ? { label: `${status.mode} · ${integrationLabel(status)}`, tone: integrationTone(status) }
+      : { label: "disabled", tone: "warn" };
+  }
+  if (route.name === "doctor") {
+    const doctor = view.data as DoctorResult;
+    return {
+      label: doctor.overall,
+      tone: doctor.overall === "healthy" ? "ok" : doctor.overall === "warning" ? "warn" : "fail",
+    };
+  }
+  if (route.name === "global-dashboard") {
+    const count = (view.data as RepositoryListView).repositories.length;
+    return { label: `${count} repos`, tone: "info" };
+  }
+  return undefined;
+}
+
+function integrationLabel(status: RepositoryStatusView): string {
+  return status.integration.status === "owned" || status.integration.status === "managed-block"
+    ? "healthy"
+    : status.integration.status;
+}
+
+function integrationTone(status: RepositoryStatusView): Tone {
+  return status.integration.status === "owned" || status.integration.status === "managed-block"
+    ? "ok"
+    : status.integration.status === "missing"
+      ? "warn"
+      : "fail";
 }

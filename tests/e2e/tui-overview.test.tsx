@@ -11,7 +11,6 @@ import { HookManager } from "../../src/infrastructure/hooks/hook-manager";
 import { WorktreeStateStore } from "../../src/infrastructure/state/worktree-state-store";
 import { App } from "../../src/tui/app";
 import type { TuiServices } from "../../src/tui/app-context";
-import { RepositoryOverview } from "../../src/tui/screens/repository-overview";
 import { createTempGitRepository, type TempRepository } from "../helpers/temp-repository";
 
 /**
@@ -58,25 +57,31 @@ async function makeStatusView() {
   return { repo, view };
 }
 
-describe("RepositoryOverview", () => {
+describe("Repository overview", () => {
   test("renders status fields from the application view model", async () => {
     const { view } = await makeStatusView();
-    const setup = await testRender(<RepositoryOverview status={view} onQuit={() => {}} />, {
-      width: 64,
-      height: 24,
-    });
+    const setup = await testRender(
+      <App
+        services={{ ...noopServices, getRepositoryStatus: async () => view }}
+        initialContext={{ kind: "repository-overview", status: view }}
+        onQuit={() => {}}
+      />,
+      { width: 72, height: 26 },
+    );
     await setup.waitForVisualIdle();
     const frame = setup.captureCharFrame();
 
     expect(frame).toContain(view.repoName);
-    expect(frame).toContain("Status");
+    expect(frame).toContain("ACTIVE TICKET");
+    expect(frame).toContain("WORKFLOW");
+    expect(frame).toContain("REPOSITORY");
     expect(frame).toContain("Enabled");
-    expect(frame).toContain("hybrid");
+    expect(frame).toContain("Hybrid");
     expect(frame).toContain("ABC-123");
     expect(frame).toContain("feat/ABC-123-login");
     expect(frame).toContain("Healthy");
     expect(frame).toContain("footer");
-    expect(frame.toUpperCase()).toContain("[Q] QUIT");
+    expect(frame.toUpperCase()).toContain("Q QUIT");
     setup.renderer.destroy();
   });
 
@@ -84,8 +89,12 @@ describe("RepositoryOverview", () => {
     const { view } = await makeStatusView();
     let quitCount = 0;
     const setup = await testRender(
-      <RepositoryOverview status={view} onQuit={() => quitCount++} />,
-      { width: 64, height: 24 },
+      <App
+        services={{ ...noopServices, getRepositoryStatus: async () => view }}
+        initialContext={{ kind: "repository-overview", status: view }}
+        onQuit={() => quitCount++}
+      />,
+      { width: 72, height: 26 },
     );
     await setup.waitForVisualIdle();
     await act(async () => {
@@ -111,7 +120,8 @@ describe("App routing", () => {
     );
     await setup.waitForVisualIdle();
     const frame = setup.captureCharFrame();
-    expect(frame).toContain("S2 · JIRAFLOW");
+    expect(frame).toContain("◆ JIRAFLOW");
+    expect(frame).toContain("S2");
     expect(frame).toContain("Unconfigured Repository");
     expect(frame).toContain("Set up JiraFlow");
     setup.renderer.destroy();
@@ -124,16 +134,17 @@ describe("App routing", () => {
     );
     await setup.waitForVisualIdle();
     const frame = setup.captureCharFrame();
-    expect(frame).toContain("S1 · JIRAFLOW");
+    expect(frame).toContain("◆ JIRAFLOW");
+    expect(frame).toContain("S1");
     expect(frame).toContain("No repositories are configured yet");
     setup.renderer.destroy();
   });
 });
 
 describe("TUI component boundaries (VT-14)", () => {
-  test("overview component has no Git or SQLite imports", () => {
+  test("presentation components have no Git or SQLite imports", () => {
     const source = readFileSync(
-      join(projectRoot, "src", "tui", "screens", "repository-overview.tsx"),
+      join(projectRoot, "src", "tui", "screens", "route-content.tsx"),
       "utf8",
     );
     expect(source).not.toContain("bun:sqlite");
