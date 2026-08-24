@@ -91,6 +91,10 @@ jobs:
         if: runner.os == 'Windows'
         run: bun run package:native -- --local
 
+      - name: Prepare registry-shaped package for Bun on Windows
+        if: runner.os == 'Windows' && matrix.manager == 'bun'
+        run: bun run package:native
+
       - name: Run global package smoke
         shell: bash
         run: |
