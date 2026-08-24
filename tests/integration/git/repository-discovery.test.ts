@@ -6,6 +6,7 @@ import { BareRepositoryUnsupportedError, NotAGitRepositoryError } from "../../..
 import { GitAdapter } from "../../../src/infrastructure/git/git-adapter";
 import { GitRunner } from "../../../src/infrastructure/git/git-runner";
 import { classifyHooksPath } from "../../../src/infrastructure/hooks/hook-path-classification";
+import { canonicalizePath } from "../../../src/infrastructure/platform/path-identity";
 import {
   createTempGitRepository,
   createTempNonGitDirectory,
@@ -57,7 +58,7 @@ describe("repository discovery", () => {
   });
 
   test("path with spaces: discovers root and default hooks dir", async () => {
-    const parent = mkdtempSync(join(tmpdir(), "jiraflow space parent-"));
+    const parent = canonicalizePath(mkdtempSync(join(tmpdir(), "jiraflow space parent-")));
     scratch.push(() => rmSync(parent, { recursive: true, force: true }));
     const spacedRoot = join(parent, "my repo");
     mkdirSync(spacedRoot);
@@ -100,7 +101,7 @@ describe("repository discovery", () => {
     const repo = createTempGitRepository();
     repos.push(repo);
     await repo.runOk(["commit", "--allow-empty", "-m", "initial"]);
-    const worktreePath = join(tmpdir(), `jiraflow-wt-${Date.now()}`);
+    const worktreePath = canonicalizePath(join(tmpdir(), `jiraflow-wt-${Date.now()}`));
     scratch.push(() => rmSync(worktreePath, { recursive: true, force: true }));
     await repo.runOk(["worktree", "add", "-b", "feature-x", worktreePath]);
 

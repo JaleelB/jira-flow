@@ -1,5 +1,6 @@
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import type { GitRepositoryContext, HooksContext } from "../../application/ports/git.port";
+import { canonicalizePath } from "../platform/path-identity";
 
 /**
  * Classifies the effective hooks directory for hook-safety decisions
@@ -29,8 +30,8 @@ export function classifyHooksPath(repo: GitRepositoryContext, hooks: HooksContex
 }
 
 function isInside(target: string, root: string): boolean {
-  const resolvedTarget = resolve(target);
-  const resolvedRoot = resolve(root);
+  const resolvedTarget = canonicalizePath(resolve(target));
+  const resolvedRoot = canonicalizePath(resolve(root));
   if (resolvedTarget === resolvedRoot) {
     return true;
   }
