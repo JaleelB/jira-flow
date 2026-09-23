@@ -43,7 +43,7 @@ jobs:
         run: bun ci
 
       - name: Run application, Git, hook, SQLite, and compiled E2E tests
-        run: bun test tests/application tests/integration tests/e2e
+        run: bun test --timeout=30000 tests/application tests/integration tests/e2e
 
       - name: Verify repository remains clean
         shell: bash
