@@ -2,6 +2,8 @@
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "release-type": "node",
   "include-v-in-tag": true,
+  "include-component-in-tag": false,
+  "bootstrap-sha": "a8bd523cc69d681103d333229a4cdfa98fa9da90",
   "packages": {
     ".": {
       "package-name": "jira-flow",

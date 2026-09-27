@@ -57,8 +57,17 @@ describe("release version and automation contract", () => {
       join(root, ".github", "workflows", "release-please.yml"),
       "utf8",
     );
-    expect(releasePlease).toContain("skip-github-release: true");
+    expect(releasePlease).toContain("npx --yes release-please@17.6.0");
+    expect(releasePlease).toContain("--target-branch=main");
+    expect(releasePlease).toContain('args+=(--release-as="$RELEASE_AS")');
+    expect(releasePlease).not.toContain("googleapis/release-please-action@");
     expect(releasePlease).toContain("initial_v1_release");
+
+    const releasePleaseConfig = JSON.parse(
+      readFileSync(join(root, "release-please-config.json"), "utf8"),
+    ) as { "include-component-in-tag": boolean; "bootstrap-sha": string };
+    expect(releasePleaseConfig["include-component-in-tag"]).toBe(false);
+    expect(releasePleaseConfig["bootstrap-sha"]).toBe("a8bd523cc69d681103d333229a4cdfa98fa9da90");
   });
 
   test("real-Git and package smoke matrices exercise all six native targets", () => {
