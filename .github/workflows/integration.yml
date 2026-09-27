@@ -22,12 +22,16 @@ jobs:
         include:
           - name: Linux x64
             os: ubuntu-latest
+          - name: Linux arm64
+            os: ubuntu-24.04-arm
           - name: macOS arm64
             os: macos-15
           - name: macOS x64
             os: macos-15-intel
           - name: Windows x64
             os: windows-latest
+          - name: Windows arm64
+            os: windows-11-arm
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:

@@ -16,9 +16,13 @@ concurrency:
 
 jobs:
   windows-native:
-    name: Build Windows x64 artifact
+    name: Build ${{ matrix.platform }} artifact
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [win32-arm64, win32-x64]
     steps:
       - name: Check out code
         uses: actions/checkout@v6
@@ -31,14 +35,14 @@ jobs:
       - name: Install locked dependencies
         run: bun ci
 
-      - name: Cross-compile Windows x64 executable
-        run: bun run build:native -- --target win32-x64
+      - name: Cross-compile Windows executable
+        run: bun run build:native -- --target ${{ matrix.platform }}
 
-      - name: Upload Windows x64 executable
+      - name: Upload Windows executable
         uses: actions/upload-artifact@v4
         with:
-          name: jira-flow-win32-x64
-          path: dist/native/win32-x64/jira-flow.exe
+          name: jira-flow-${{ matrix.platform }}
+          path: dist/native/${{ matrix.platform }}/jira-flow.exe
           if-no-files-found: error
           retention-days: 1
 
@@ -48,8 +52,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-15, macos-15-intel, windows-latest]
         manager: [npm, pnpm, bun]
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64
+          - os: ubuntu-24.04-arm
+            platform: linux-arm64
+          - os: macos-15
+            platform: darwin-arm64
+          - os: macos-15-intel
+            platform: darwin-x64
+          - os: windows-latest
+            platform: win32-x64
+          - os: windows-11-arm
+            platform: win32-arm64
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
@@ -74,20 +90,20 @@ jobs:
       - name: Install locked dependencies
         run: bun ci
 
-      - name: Download Windows x64 executable
+      - name: Download Windows executable
         if: runner.os == 'Windows'
         uses: actions/download-artifact@v4
         with:
-          name: jira-flow-win32-x64
-          path: dist/native/win32-x64
+          name: jira-flow-${{ matrix.platform }}
+          path: dist/native/${{ matrix.platform }}
 
       - name: Build host-native package
         if: runner.os != 'Windows'
         run: |
-          bun run build:native
+          bun run build:native -- --target ${{ matrix.platform }}
           bun run package:native -- --local
 
-      - name: Package Windows x64 artifact
+      - name: Package Windows artifact
         if: runner.os == 'Windows'
         run: bun run package:native -- --local
 
