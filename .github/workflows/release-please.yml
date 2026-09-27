@@ -47,10 +47,21 @@ jobs:
 
       - name: Open or update release PR only
         if: steps.release-policy.outputs.run_release_please == 'true'
-        uses: googleapis/release-please-action@v4
-        with:
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
-          release-as: ${{ steps.release-policy.outputs.release_as }}
-          skip-github-release: true
+        env:
+          RELEASE_PLEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+          RELEASE_AS: ${{ steps.release-policy.outputs.release_as }}
+        run: |
+          args=(
+            release-pr
+            --token="$RELEASE_PLEASE_TOKEN"
+            --repo-url="$GITHUB_REPOSITORY"
+            --target-branch=main
+            --config-file=release-please-config.json
+            --manifest-file=.release-please-manifest.json
+          )
+
+          if [[ -n "$RELEASE_AS" ]]; then
+            args+=(--release-as="$RELEASE_AS")
+          fi
+
+          npx --yes release-please@17.6.0 "${args[@]}"
