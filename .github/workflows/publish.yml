@@ -1,29 +1,150 @@
-name: Publish
+name: Publish JiraFlow release
+
 on:
   workflow_dispatch:
-  release:
-    types: [created]
+    inputs:
+      version:
+        description: Exact stable version represented by the candidate artifacts
+        required: true
+        type: choice
+        options: [1.0.0]
+      candidate_run_id:
+        description: Successful Stable v1 candidate workflow run ID
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: publish-jira-flow
+  cancel-in-progress: false
 
 jobs:
+  native-package-smoke:
+    uses: ./.github/workflows/package-smoke.yml
+
   publish:
+    needs: native-package-smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: release
+    permissions:
+      actions: read
+      contents: write
+      id-token: write
+      attestations: write
     steps:
-      - name: Check out code
-        uses: actions/checkout@v4
+      - name: Check out selected release commit
+        uses: actions/checkout@v6
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18.x
-          registry-url: "https://registry.npmjs.org"
-
-      - name: Update install script with current version
-        run: |
-          NEW_VERSION=$(node -pe "require('./package.json').version")
-          sed -i "s/%%VERSION%%/${NEW_VERSION}/g" ./scripts/install.js
-          cat ./scripts/install.js
-
-      - name: Publish to npm
-        run: npm publish
+      - name: Require main and exact stable version
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ inputs.version }}
+          CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+        run: |
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$VERSION" = "1.0.0"
+          [[ "$CANDIDATE_RUN_ID" =~ ^[0-9]+$ ]]
+
+      - name: Set up Node for npm trusted publishing
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Require an OIDC-capable npm CLI
+        run: |
+          node -e 'const v=require("node:child_process").execFileSync("npm",["--version"],{encoding:"utf8"}).trim().split(".").map(Number); const ok=v[0]>11||(v[0]===11&&(v[1]>5||(v[1]===5&&v[2]>=1))); if(!ok){console.error(`npm 11.5.1+ required, found ${v.join(".")}`);process.exit(1)}'
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install locked cross-platform build inputs
+        run: bun install --frozen-lockfile --os=* --cpu=*
+
+      - name: Verify candidate run belongs to this exact main commit
+        id: candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+        run: |
+          run=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${CANDIDATE_RUN_ID}")
+          branch=$(jq -r '.head_branch' <<<"$run")
+          sha=$(jq -r '.head_sha' <<<"$run")
+          workflow=$(jq -r '.path' <<<"$run")
+          conclusion=$(jq -r '.conclusion' <<<"$run")
+          if [[ "$branch" != "main" || "$sha" != "$GITHUB_SHA" || "$workflow" != ".github/workflows/candidate.yml" || "$conclusion" != "success" ]]; then
+            echo "Candidate must be a successful candidate.yml run from this exact main commit."
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Download the exact candidate artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: jira-flow-candidate-${{ inputs.version }}-${{ steps.candidate.outputs.sha }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.candidate_run_id }}
+          github-token: ${{ github.token }}
+          path: dist
+
+      - name: Verify candidate package and archive set
+        run: bun run verify:release -- --tag "v${{ inputs.version }}" --channel latest --artifacts
+
+      - name: Attest standalone release artifacts
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            dist/release/*.tar.gz
+            dist/release/*.zip
+            dist/release/SHA256SUMS
+
+      - name: Create or refresh the recoverable draft GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: v${{ inputs.version }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            is_draft=$(gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft')
+            if [[ "$is_draft" != "true" ]]; then
+              echo "$RELEASE_TAG already exists as a published release; refusing to overwrite it."
+              exit 1
+            fi
+          else
+            gh release create "$RELEASE_TAG" --draft --target "$GITHUB_SHA" --title "JiraFlow $RELEASE_TAG" --notes-file docs/releases/v1.0.0.md
+          fi
+          gh release upload "$RELEASE_TAG" dist/release/*.tar.gz dist/release/*.zip dist/release/SHA256SUMS --clobber
+
+      - name: Publish native npm packages with OIDC
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          for package in darwin-arm64 darwin-x64 linux-arm64 linux-x64 win32-arm64 win32-x64; do
+            name="jira-flow-${package}"
+            if npm view "${name}@${VERSION}" version 2>/dev/null | grep -Fx "$VERSION"; then
+              echo "${name}@${VERSION} is already published"
+            else
+              npm publish "dist/packages/${name}-${VERSION}.tgz" --tag latest --access public
+            fi
+          done
+
+      - name: Publish universal npm package last with OIDC
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if npm view "jira-flow@${VERSION}" version 2>/dev/null | grep -Fx "$VERSION"; then
+            echo "jira-flow@${VERSION} is already published"
+          else
+            npm publish "dist/packages/jira-flow-${VERSION}.tgz" --tag latest --access public
+          fi
+
+      - name: Publish GitHub v1.0.0 release after npm succeeds
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: v${{ inputs.version }}
+        run: gh release edit "$RELEASE_TAG" --draft=false --prerelease=false --latest

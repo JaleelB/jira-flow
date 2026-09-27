@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, rewrite/v1]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install locked dependencies
+        run: bun ci
+
+      - name: Verify release version sources
+        run: bun run verify:release
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Unit and application tests
+        run: bun test tests/unit tests/application
+
+      - name: Compile standalone application
+        run: bun run build
+
+      - name: SQLite integration tests
+        run: bun test tests/integration/sqlite
+
+      - name: Full test suite
+        run: bun test
+
+      - name: Smoke compiled command
+        run: |
+          test "$(./dist/jira-flow --version)" = "$(bun -p "require('./package.json').version")"
+          ./dist/jira-flow --help >/dev/null

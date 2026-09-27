@@ -1,0 +1,56 @@
+name: Release Please
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      initial_v1_release:
+        description: Generate the one-time JiraFlow v1.0.0 release PR
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  release-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Select the initial stable release override
+        id: release-policy
+        env:
+          INITIAL_V1_RELEASE: ${{ inputs.initial_v1_release }}
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "Release Please must run from main."
+            exit 1
+          fi
+
+          if git ls-remote --exit-code "https://github.com/${GITHUB_REPOSITORY}.git" refs/tags/v1.0.0 >/dev/null 2>&1; then
+            echo "release_as=" >> "$GITHUB_OUTPUT"
+            echo "run_release_please=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$INITIAL_V1_RELEASE" == "true" ]]; then
+            echo "release_as=1.0.0" >> "$GITHUB_OUTPUT"
+            echo "run_release_please=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_as=" >> "$GITHUB_OUTPUT"
+            echo "run_release_please=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update release PR only
+        if: steps.release-policy.outputs.run_release_please == 'true'
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          release-as: ${{ steps.release-policy.outputs.release_as }}
+          skip-github-release: true

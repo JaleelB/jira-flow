@@ -1,182 +1,158 @@
-# Jira-Flow
+# JiraFlow
 
-Jira-Flow is a CLI tool designed to link git commits with JIRA issues.
+JiraFlow links local Git work to Jira issue keys. It updates commit messages,
+generates pull-request titles, and provides both a headless CLI and an OpenTUI
+control plane—without Jira, GitHub, or `gh` API access.
 
-### Installation
+JiraFlow v1 is one compiled application. Git remains repository authority;
+repository settings live in local Git config, the linked issue is worktree-local,
+and SQLite is only a disposable dashboard/cache database.
 
-#### Using NPM (or any other package manager)
+## Install
 
-```sh
+After v1 packages are published:
+
+```bash
 npm install -g jira-flow
+# or
+pnpm add -g jira-flow
+# or, with Node 18+ also available
+bun add -g jira-flow
 ```
 
-#### Quick Install Script (Linux/macOS)
+npm and pnpm already run on Node; the universal package launcher requires Node
+18+. Bun global lifecycle support is limited to Linux and macOS in v1; Windows
+users should use npm, pnpm, or the runtime-free native archive because Bun
+1.3.14 and 1.4.0 leave a nonfunctional command shim after uninstall (DR-0026).
+Bun-only environments should also use the native archive. The JiraFlow
+application itself is a standalone binary and does not require Bun or Node.
+Stable v1.0.0 supports macOS arm64/x64, Linux arm64/x64, and Windows arm64/x64.
+See [Installation](docs/installation.md).
+
+## Quick start
+
+From a Git repository:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/JaleelB/jira-flow/main/installScripts/unix/install.sh | bash
-```
-
-#### Windows PowerShell
-
-```powershell
-iwr -useb https://raw.githubusercontent.com/JaleelB/jira-flow/main/installScripts/windows/install.ps1 | iex
-```
-
-#### Homebrew (macOS)
-
-```bash
-brew tap jaleelb/jira-flow
-brew install jira-flow
-```
-
-#### Docker
-
-```bash
-docker run --rm -it -v $(pwd):/git -w /git jaleelb/jira-flow init
-```
-
-#### From Source
-
-To install Jira-Flow from source, including all associated binaries (`jiraflow`, `commitmsg`, `postco`), follow these steps:
-
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/JaleelB/jira-flow.git
-   cd jira-flow
-   ```
-
-2. Build the project (assuming Go is installed):
-
-   ```bash
-   go build -o jira-flow ./cmd/app/main.go
-   go build -o commitmsg ./hooks/commitmsg/main.go
-   go build -o postco ./hooks/post_checkout/main.go
-   ```
-
-3. Optionally, install the binary to a location in your PATH:
-
-   ```bash
-   sudo mv jira-flow /usr/local/bin
-   sudo mv commitmsg /usr/local/bin
-   sudo mv postco /usr/local/bin
-   ```
-
-   On Windows, move the `.exe` files to a directory that is included in your PATH.
-
-#### Manual Installation
-
-If you prefer not to use npm, you can manually download the binaries from the [GitHub Releases page](https://github.com/JaleelB/jira-flow/releases).
-
-1. Navigate to the [Releases page](https://github.com/JaleelB/jira-flow/releases) of Jira-Flow.
-2. Download the appropriate binary for your operating system and architecture.
-3. Extract the downloaded archive and place the binary in a directory included in your system's PATH.
-
-For example, on Unix-like systems:
-
-```bash
-tar -zxvf jiraflow_vX.X.X_os_arch.tar.gz
-sudo mv jiraflow /usr/local/bin
-tar -zxvf commitmsg_vX.X.X_os_arch.tar.gz
-sudo mv commitmsg /usr/local/bin
-tar -zxvf postco_vX.X.X_os_arch.tar.gz
-sudo mv postco /usr/local/bin
-```
-
-On Windows, extract the files and add the folder to your PATH using the environment settings.
-
-### Usage
-
-Once installed, you can use Jira-Flow with the following commands:
-
-```bash
-# Initialize JiraFlow
-jira-flow init
-
-# Check JiraFlow status
+jira-flow init          # interactive OpenTUI setup
+jira-flow init --yes    # safe Hybrid/footer defaults, headless
 jira-flow status
-
-# Toggle JiraFlow on/off
-jira-flow status --toggle
 ```
 
-### Commands
+On a branch such as `feat/ABC-123-login`, the default Hybrid/footer setup turns:
 
-- `init` - Initialize JiraFlow in your repository
-  ```bash
-  jira-flow init
-  ```
-  This opens an interactive menu where you can:
-  - Configure automatic/manual JIRA issue linking
-  - Check JiraFlow status
-  - Remove JiraFlow
-- `status` - Check JiraFlow configuration status
+```text
+feat: add login
+```
 
-  ```bash
-  jira-flow status
-  ```
+into:
 
-  Shows whether JiraFlow is active and which hooks are installed.
+```text
+feat: add login
 
-  Use `--toggle` flag to enable/disable JiraFlow:
+Jira: ABC-123
+```
 
-  ```bash
-  jira-flow status --toggle
-  ```
-
-### Interactive Menu
-
-When running `jira-flow init`, you'll see an interactive menu with these options:
-
-1. **Configure** - Set up JiraFlow for your repository
-2. **Status** - Check current JiraFlow status
-3. **Remove** - Remove JiraFlow from repository
-4. **Exit** - Exit the CLI
-
-### A Quick Example
-
-Here's a quick example of initializing Jira-Flow and configuring it to automatically detect JIRA issue keys:
+Override the branch issue for the current worktree:
 
 ```bash
-$ jira-flow init
-# Welcome message and logo displayed
-? How would you like to proceed:
-  ▸ Configure Jira-Flow for this repository
-    Check Jira-Flow status in this repository
-    Remove Jira-Flow from this repository
-    Exit Jira-Flow
-
-# User selects 'Configure Jira-Flow'
-? Choose configuration method:
-  ▸ Automatically link commits to Jira issues based on branch name
-    Manually link commits to Jira issues by entering the Jira issue key
-
-# User chooses 'Automatically'
-# Success message confirming automatic linking
-"Success! The JIRA issue key will now be prepended to your commits."
-
+jira-flow link OPS-42 --title "Improve login error handling"
+jira-flow unlink
 ```
 
-Once set up, Jira-Flow will prepend commit messages with the JIRA issue key, either detected from the branch name or entered manually, enhancing the integration between the developer's code repository and the JIRA tracking system.
+Generate a local PR title and copy it when a clipboard adapter is available:
 
-### Linking Commits to JIRA Issues
+```bash
+jira-flow pr-title
+jira-flow pr-title --title "Improve login error handling" --no-copy
+```
 
-For more information on how JIRA issue keys can be used to reference issues in your development work, including commits, branches, and pull requests, see the official [Atlassian documentation](https://support.atlassian.com/jira-software-cloud/docs/reference-issues-in-your-development-work/).
+Run `jira-flow` with no arguments for the OpenTUI dashboard. `?` opens help,
+`Esc` goes back, and `Q` quits except on text-entry and destructive confirmation
+screens. In the global dashboard, use `Up`/`Down` or `J`/`K` to select a
+repository and `Enter` to open it.
 
-### Contributing
+## Linking modes
 
-- Fork the repository
-- Create a branch
-  ```bash
-  git checkout -b fix/amazingFix
-  ```
-- Commit your changes and push to your branch
-  ```bash
-  git commit -m "made an amazingFix"
-  git push origin fix/amazingFix
-  ```
-- Open a pull request
+- **Hybrid**: worktree-linked issue first, then branch issue.
+- **Branch**: branch issue only; a saved linked issue is retained but inactive.
+- **Manual**: worktree-linked issue only.
 
-### Checking JiraFlow Status
+Enabled/disabled is independent from mode. A missing issue is always a safe
+no-op and never blocks a commit. See [Linking modes](docs/linking-modes.md).
 
-You can check if JiraFlow is active in your repository:
+## Commit formats
+
+JiraFlow supports `footer` (default), `suffix`, `prefix`, and Conventional
+Commit `scope`. Scope mode refuses to replace an existing non-empty scope.
+See [Commit formats](docs/commit-formats.md).
+
+## Safety model
+
+- JiraFlow installs only `commit-msg`; v1 never installs `post-checkout`.
+- Existing supported shell hooks are composed only with explicit consent.
+- Shared/external `core.hooksPath` needs both composition and shared-hook consent.
+- Binary, unsupported, ambiguous, and damaged hooks are refused without mutation.
+- Removal deletes only an exactly generated owned hook or JiraFlow's marked block.
+- A missing JiraFlow executable makes its hook a no-op, so uninstall cannot block Git.
+- The commit-time path has no network, SQLite, Jira API, GitHub API, or OpenTUI dependency.
+
+Run `jira-flow doctor` to inspect these boundaries and
+`jira-flow doctor --repair` for JiraFlow-owned repairs. See
+[Doctor and removal](docs/doctor-and-removal.md) and the
+[safety review](docs/reviews/v1-safety-review.md).
+
+## v0.5 migration
+
+```bash
+jira-flow migrate          # preview/prompt in a terminal
+jira-flow migrate --yes    # confirmed headless migration
+```
+
+Migration recognizes only exact v0.5 wrapper/helper signatures. It removes a
+legacy `post-checkout` only when ownership is proven, initializes v1 in Hybrid
+mode, and never invents Manual state that v0.5 did not persist. See the
+[migration guide](docs/migration/v0.5-to-v1.md).
+
+## Documentation
+
+- [Installation](docs/installation.md)
+- [CLI reference](docs/cli-reference.md)
+- [Linking modes](docs/linking-modes.md)
+- [Commit formats](docs/commit-formats.md)
+- [PR-title workflow](docs/pr-titles.md)
+- [OpenTUI screens and keys](docs/tui.md)
+- [Doctor and removal](docs/doctor-and-removal.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [Implemented architecture](docs/architecture/v1-implementation.md)
+- [Release checklist](docs/release-checklist.md)
+
+Authoritative design sources remain the
+[v1 product specification](docs/product/v1-product-spec.md),
+[technical architecture](docs/architecture/v1-technical-architecture.md), and
+[implementation roadmap](docs/planning/v1-implementation-roadmap.md).
+
+## Development
+
+Requirements: Bun 1.4.2 and Git 2.39+.
+
+```bash
+bun ci
+bun run typecheck
+bun run lint
+bun test
+bun run build
+./dist/jira-flow --version
+```
+
+Native/release validation:
+
+```bash
+bun run build:native -- --all
+bun run package:native -- --all
+bun run package:release -- --all
+bun run verify:release -- --artifacts
+```
+
+The legacy Go 0.5.0 implementation remains in Git history, tag `v0.5.0`, and
+branch `legacy/go-v0.5`; it is not part of the v1 source tree.

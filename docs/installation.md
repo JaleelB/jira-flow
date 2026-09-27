@@ -1,0 +1,87 @@
+# Installation
+
+## Package managers
+
+The v1 release publishes a universal `jira-flow` package plus an exact-version
+native package for the current platform.
+
+```bash
+npm install -g jira-flow
+pnpm add -g jira-flow
+bun add -g jira-flow
+```
+
+The package-manager launcher requires Node 18 or newer. npm and pnpm already
+have Node. The Bun command is supported when `node` 18+ is also on `PATH`; a
+Bun-only machine should use a native archive (DR-0023). On Windows, use npm,
+pnpm, or a native archive: Bun 1.3.14 and 1.4.0 remove the packages but leave a
+nonfunctional `jira-flow.exe` package-manager shim after uninstall (DR-0026).
+
+The launcher selects only the current OS/architecture, verifies that the
+universal and native packages have the same version, and directly starts the
+compiled application without a shell. There are no install lifecycle scripts,
+downloads, repository scans, hook writes, or configuration prompts.
+
+Verify an installation anywhere:
+
+```bash
+jira-flow --version
+jira-flow --help
+```
+
+Supported release targets are macOS arm64/x64, Linux arm64/x64, and Windows
+arm64/x64. All six targets are release-blocking: real-Git integration and
+package-manager smoke run on native CI runners for each architecture.
+
+## Runtime-free native archives
+
+Release packaging produces these GitHub Release assets:
+
+```text
+jira-flow-vX.Y.Z-darwin-arm64.tar.gz
+jira-flow-vX.Y.Z-darwin-x64.tar.gz
+jira-flow-vX.Y.Z-linux-arm64.tar.gz
+jira-flow-vX.Y.Z-linux-x64.tar.gz
+jira-flow-vX.Y.Z-win32-arm64.zip
+jira-flow-vX.Y.Z-win32-x64.zip
+SHA256SUMS
+```
+
+Verify the checksum, extract the archive, and place `jira-flow` (or
+`jira-flow.exe`) in a directory on `PATH`. The binary needs Git, but neither Bun
+nor Node. JiraFlow intentionally has no curl-pipe installer in v1.
+
+## Upgrade
+
+Use the same package manager that installed JiraFlow:
+
+```bash
+npm install -g jira-flow@latest
+pnpm add -g jira-flow@latest
+bun add -g jira-flow@latest
+```
+
+JiraFlow v1 is published directly as stable `1.0.0` on npm's `latest` channel;
+there are no public alpha, beta, or RC packages. Hooks prefer their captured
+native executable and fall back to `jira-flow` on `PATH`, so a moved upgrade
+remains recoverable. Running `jira-flow doctor --repair` refreshes JiraFlow-owned
+integration if needed.
+
+## Uninstall
+
+Package-manager uninstall removes package files only:
+
+```bash
+npm uninstall -g jira-flow
+pnpm remove -g jira-flow
+bun remove -g jira-flow
+```
+
+It never crawls or cleans repositories. Existing JiraFlow hook shims become
+non-blocking no-ops when the executable is absent. For explicit repository
+cleanup, run `jira-flow remove --yes` in each repository before uninstalling.
+
+The Bun command is a supported lifecycle path on Linux and macOS. On Windows,
+use npm, pnpm, or remove the native-archive executable yourself; Bun's residual
+shim is package-manager-owned and JiraFlow will not delete it through a
+lifecycle script.

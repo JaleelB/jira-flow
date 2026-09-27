@@ -1,0 +1,44 @@
+{
+  "darwin-arm64": {
+    "package": "jira-flow-darwin-arm64",
+    "os": "darwin",
+    "cpu": "arm64",
+    "bunTarget": "bun-darwin-arm64",
+    "binary": "jira-flow"
+  },
+  "darwin-x64": {
+    "package": "jira-flow-darwin-x64",
+    "os": "darwin",
+    "cpu": "x64",
+    "bunTarget": "bun-darwin-x64-baseline",
+    "binary": "jira-flow"
+  },
+  "linux-arm64": {
+    "package": "jira-flow-linux-arm64",
+    "os": "linux",
+    "cpu": "arm64",
+    "bunTarget": "bun-linux-arm64",
+    "binary": "jira-flow"
+  },
+  "linux-x64": {
+    "package": "jira-flow-linux-x64",
+    "os": "linux",
+    "cpu": "x64",
+    "bunTarget": "bun-linux-x64-baseline",
+    "binary": "jira-flow"
+  },
+  "win32-arm64": {
+    "package": "jira-flow-win32-arm64",
+    "os": "win32",
+    "cpu": "arm64",
+    "bunTarget": "bun-windows-arm64",
+    "binary": "jira-flow.exe"
+  },
+  "win32-x64": {
+    "package": "jira-flow-win32-x64",
+    "os": "win32",
+    "cpu": "x64",
+    "bunTarget": "bun-windows-x64-baseline",
+    "binary": "jira-flow.exe"
+  }
+}
