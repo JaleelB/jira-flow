@@ -1,10 +1,18 @@
 # Cross-Platform Manual Smoke Test
 
-Use this guide to validate the same JiraFlow build on Linux, macOS, and
-Windows. Run it from a clean checkout of the release-candidate branch. Every
-test repository, Git configuration file, and SQLite database is created under a
-new temporary directory so the test does not touch your real repositories or
-global Git configuration.
+Use this guide to validate the exact, unpublished JiraFlow 1.0.0 candidate
+artifacts on Linux, macOS, and Windows. This does not publish a package, create
+a tag, or require a source build. Every test repository, Git configuration
+file, and SQLite database is created under a new temporary directory so the
+test does not touch your real repositories or global Git configuration.
+
+In GitHub, open **Actions → Stable v1 candidate**, choose the successful run for
+the `main` commit being considered for release, and download its
+`jira-flow-candidate-1.0.0-<commit-sha>` artifact. Record that run ID and full
+commit SHA below. The downloaded artifact is a ZIP containing all six native
+packages, all six runtime-free archives, and `SHA256SUMS`. Extract that ZIP
+first; the platform-specific commands below verify the archive checksums and
+run the matching native binary. Do not substitute a locally rebuilt binary.
 
 Record the tested commit before starting:
 
@@ -13,10 +21,8 @@ OS:
 Architecture:
 JiraFlow commit:
 JiraFlow version:
+Candidate workflow run ID:
 Git version:
-Bun version:
-Node version (package test):
-npm / pnpm versions (package test):
 Tester:
 Date:
 ```
@@ -37,54 +43,58 @@ The platform passes when all of these are true:
 - Doctor explicitly re-registers the repository after SQLite deletion.
 - The repository and global-dashboard TUI routes start and the global keys work.
 - Removal deletes the owned hook and Git commits continue afterward.
-- The optional package-manager smoke passes for the platform artifact.
+- The exact candidate archive checksum passes for this platform.
+- The candidate workflow's six-target npm/pnpm/Bun package smoke gate passes.
+  It is separate from the cross-machine binary test here.
 
 Stop and record a failure if JiraFlow corrupts or removes unknown hook content,
 blocks a commit after uninstall/removal, loses Git-local configuration merely
 because SQLite is absent, crashes during TUI startup, or reports the wrong
 binary/package version.
 
-## Prepare the branch
-
-On each machine, use a clean clone or a clean working tree:
-
-```bash
-git switch rewrite/v1
-git pull --ff-only origin rewrite/v1
-git rev-parse --short HEAD
-```
-
-PowerShell uses the same Git commands:
-
-```powershell
-git switch rewrite/v1
-git pull --ff-only origin rewrite/v1
-git rev-parse --short HEAD
-```
-
-The source-build test requires Git 2.39+ and Bun 1.4.2. The optional package
-test also requires Node 18+, npm, pnpm, and Python 3 on Linux/macOS for the PTY
-TUI check. Bun global installation uses the Node-compatible universal launcher;
-a Bun-only machine must test the native archive instead.
+The candidate-archive smoke requires Git 2.39+ and a terminal. It does not
+require a JiraFlow checkout, Bun, or Node. The optional package-manager
+development smoke near the end requires a source checkout, Bun 1.4.2, Node 18+,
+and the package manager being tested.
 
 ## Linux and macOS
 
-Run this section in Bash or Zsh from the JiraFlow repository root.
+Run this section in Bash or Zsh. The native archive is runtime-free apart from
+Git, which JiraFlow uses as the repository authority.
 
-### 1. Build and isolate the environment
+### 1. Extract the candidate and isolate the environment
 
 ```bash
-bun install --frozen-lockfile
-bun run build
-
-export JF_SOURCE_ROOT="$PWD"
-export JF_BIN="$JF_SOURCE_ROOT/dist/jira-flow"
+export CANDIDATE_ARTIFACT_ZIP="/path/to/jira-flow-candidate-1.0.0-COMMIT.zip"
 export SMOKE_ROOT="$(mktemp -d)"
+export CANDIDATE_DIR="$SMOKE_ROOT/candidate-artifact"
+export BIN_ROOT="$SMOKE_ROOT/bin"
 export SMOKE_REPO="$SMOKE_ROOT/repository with spaces"
 export SMOKE_DATA="$SMOKE_ROOT/jiraflow data"
 export SMOKE_GIT_CONFIG="$SMOKE_ROOT/isolated gitconfig"
 
-mkdir -p "$SMOKE_REPO" "$SMOKE_DATA"
+mkdir -p "$CANDIDATE_DIR" "$BIN_ROOT" "$SMOKE_REPO" "$SMOKE_DATA"
+unzip -q "$CANDIDATE_ARTIFACT_ZIP" -d "$CANDIDATE_DIR"
+
+if command -v sha256sum >/dev/null 2>&1; then
+  (cd "$CANDIDATE_DIR" && sha256sum --check SHA256SUMS)
+else
+  (cd "$CANDIDATE_DIR" && shasum -a 256 --check SHA256SUMS)
+fi
+
+case "$(uname -s):$(uname -m)" in
+  Darwin:arm64) TARGET="darwin-arm64" ;;
+  Darwin:x86_64) TARGET="darwin-x64" ;;
+  Linux:aarch64|Linux:arm64) TARGET="linux-arm64" ;;
+  Linux:x86_64|Linux:amd64) TARGET="linux-x64" ;;
+  *) echo "Unsupported candidate platform: $(uname -s) $(uname -m)"; exit 1 ;;
+esac
+
+ARCHIVE="$CANDIDATE_DIR/jira-flow-v1.0.0-$TARGET.tar.gz"
+tar -xzf "$ARCHIVE" -C "$BIN_ROOT"
+export JF_BIN="$BIN_ROOT/jira-flow-v1.0.0-$TARGET/jira-flow"
+test -x "$JF_BIN"
+
 touch "$SMOKE_GIT_CONFIG"
 
 export JIRAFLOW_DATA_DIR="$SMOKE_DATA"
@@ -92,7 +102,7 @@ export GIT_CONFIG_GLOBAL="$SMOKE_GIT_CONFIG"
 export GIT_CONFIG_SYSTEM="$SMOKE_GIT_CONFIG"
 export GIT_CONFIG_NOSYSTEM=1
 
-printf 'JiraFlow binary: %s\nSmoke root: %s\n' "$JF_BIN" "$SMOKE_ROOT"
+printf 'Candidate binary: %s\nSmoke root: %s\n' "$JF_BIN" "$SMOKE_ROOT"
 "$JF_BIN" --version
 "$JF_BIN" --help
 
@@ -102,8 +112,8 @@ git config --local user.name "JiraFlow Smoke Test"
 git config --local user.email "smoke@jiraflow.invalid"
 ```
 
-Expected: the version matches `package.json`, help lists the public command
-surface, and the temporary repository path contains spaces.
+Expected: the binary reports `1.0.0`, help lists the public command surface,
+the checksum passes, and the temporary repository path contains spaces.
 
 ### 2. Initialize and test a branch-derived commit
 
@@ -288,23 +298,46 @@ exactly `chore: commit after removal`.
 
 ## Windows
 
-Run this section in PowerShell 7 from the JiraFlow repository root. Use Git for
-Windows so generated POSIX Git hooks have a compatible shell.
+Run this section in PowerShell 7. Use Git for Windows so generated POSIX Git
+hooks have a compatible shell.
 
-### 1. Build and isolate the environment
+### 1. Extract the candidate and isolate the environment
 
 ```powershell
-bun install --frozen-lockfile
-bun run build
-
-$JfSourceRoot = (Get-Location).Path
-$JfBin = Join-Path $JfSourceRoot "dist\jira-flow.exe"
+$CandidateArtifactZip = "C:\path\to\jira-flow-candidate-1.0.0-COMMIT.zip"
 $SmokeRoot = Join-Path ([IO.Path]::GetTempPath()) ("jiraflow-smoke-" + [guid]::NewGuid())
+$CandidateDir = Join-Path $SmokeRoot "candidate-artifact"
+$BinRoot = Join-Path $SmokeRoot "bin"
 $SmokeRepo = Join-Path $SmokeRoot "repository with spaces"
 $SmokeData = Join-Path $SmokeRoot "jiraflow data"
 $SmokeGitConfig = Join-Path $SmokeRoot "isolated gitconfig"
 
-New-Item -ItemType Directory -Force -Path $SmokeRepo, $SmokeData | Out-Null
+New-Item -ItemType Directory -Force -Path $CandidateDir, $BinRoot, $SmokeRepo, $SmokeData | Out-Null
+Expand-Archive -LiteralPath $CandidateArtifactZip -DestinationPath $CandidateDir
+
+foreach ($Line in Get-Content (Join-Path $CandidateDir "SHA256SUMS")) {
+  if ($Line -notmatch '^([0-9a-fA-F]{64})\s+(.+)$') { throw "Invalid SHA256SUMS entry: $Line" }
+  $ExpectedHash = $Matches[1].ToLowerInvariant()
+  $AssetName = $Matches[2].Trim()
+  $AssetPath = Join-Path $CandidateDir $AssetName
+  $ActualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $AssetPath).Hash.ToLowerInvariant()
+  if ($ActualHash -ne $ExpectedHash) { throw "Checksum mismatch: $AssetName" }
+}
+Write-Host "PASS: all candidate archive checksums match"
+
+$Architecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+if ($Architecture -eq "X64") {
+  $Target = "win32-x64"
+} elseif ($Architecture -eq "Arm64") {
+  $Target = "win32-arm64"
+} else {
+  throw "Unsupported Windows architecture: $Architecture"
+}
+$Archive = Join-Path $CandidateDir "jira-flow-v1.0.0-$Target.zip"
+Expand-Archive -LiteralPath $Archive -DestinationPath $BinRoot
+$JfBin = Join-Path $BinRoot "jira-flow-v1.0.0-$Target\jira-flow.exe"
+if (-not (Test-Path -LiteralPath $JfBin)) { throw "Candidate executable missing: $JfBin" }
+
 New-Item -ItemType File -Force -Path $SmokeGitConfig | Out-Null
 
 $env:JIRAFLOW_DATA_DIR = $SmokeData
@@ -312,7 +345,7 @@ $env:GIT_CONFIG_GLOBAL = $SmokeGitConfig
 $env:GIT_CONFIG_SYSTEM = $SmokeGitConfig
 $env:GIT_CONFIG_NOSYSTEM = "1"
 
-Write-Host "JiraFlow binary: $JfBin"
+Write-Host "Candidate binary: $JfBin"
 Write-Host "Smoke root: $SmokeRoot"
 & $JfBin --version
 & $JfBin --help
@@ -323,8 +356,8 @@ git config --local user.name "JiraFlow Smoke Test"
 git config --local user.email "smoke@jiraflow.invalid"
 ```
 
-Expected: the version matches `package.json`, help lists the public command
-surface, and the temporary repository path contains spaces.
+Expected: the binary reports `1.0.0`, help lists the public command surface,
+the checksum passes, and the temporary repository path contains spaces.
 
 ### 2. Initialize and test a branch-derived commit
 
@@ -489,12 +522,14 @@ Expected: removal reports `owned-file`; status exits with
 `REPOSITORY_NOT_CONFIGURED`; the hook is absent; the final commit remains
 exactly `chore: commit after removal`.
 
-## Optional package-manager smoke
+## Optional local package-manager development smoke
 
-Run this from the JiraFlow source root after completing the manual product
-test. This builds a local universal package that references only the current
-platform's native package, then runs the repository's isolated install,
-upgrade, hook, Doctor, TUI, uninstall, and post-uninstall checks.
+The candidate workflow already runs npm, pnpm, and Bun package-manager smoke
+on all six native runners. This optional local check rebuilds packages from a
+source checkout, so it is useful for debugging but is not a substitute for
+testing the exact candidate artifacts above. Use a checkout of the same
+recorded candidate commit. The native archives above remain the runtime-free
+manual test path.
 
 Choose the target matching the machine:
 
@@ -510,6 +545,7 @@ Choose the target matching the machine:
 Linux/macOS:
 
 ```bash
+export JF_SOURCE_ROOT="/path/to/jira-flow-checkout"
 cd "$JF_SOURCE_ROOT"
 TARGET="linux-x64" # change using the table above
 VERSION="$(bun -e 'console.log((await Bun.file("package.json").json()).version)')"
@@ -526,6 +562,7 @@ bun run smoke:package -- --manager bun --package "$PACKAGE_TARBALL"
 Windows PowerShell:
 
 ```powershell
+$JfSourceRoot = "C:\path\to\jira-flow-checkout"
 Set-Location $JfSourceRoot
 $Target = "win32-x64" # change using the table above
 $Version = (Get-Content package.json | ConvertFrom-Json).version
@@ -570,8 +607,8 @@ dispatch remain required.
 
 ## Result record
 
-| Platform | Architecture | Commit/version | Source smoke | npm | pnpm | Bun + Node | TUI | Result/notes |
-|---|---|---|---|---|---|---|---|---|
-| Linux | | | | | | | | |
-| macOS | | | | | | | | |
-| Windows | | | | | | | | |
+| Platform | Architecture | Candidate run / commit | Version | Binary smoke | TUI | Result/notes |
+|---|---|---|---|---|---|---|
+| Linux | | | | | | |
+| macOS | | | | | | |
+| Windows | | | | | | |

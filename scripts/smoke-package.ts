@@ -107,10 +107,26 @@ try {
     `${manager} package smoke passed: install, upgrade, hook, doctor, uninstall\n`,
   );
 } finally {
-  // Windows runners can briefly hold extracted package files after child
-  // processes exit. Retry transient filesystem locks, but still fail if the
-  // isolated smoke directory cannot be removed.
-  rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+  await removeSmokeRoot();
+}
+
+async function removeSmokeRoot(): Promise<void> {
+  const maxAttempts = 60;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      rmSync(root, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (!code || !["EBUSY", "ENOTEMPTY", "EPERM"].includes(code) || attempt === maxAttempts - 1) {
+        throw error;
+      }
+      // Bun's fs.rmSync compatibility layer does not consistently honor its
+      // maxRetries option for Windows ARM64 EBUSY locks. Retry explicitly so
+      // the cleanup gate behaves the same on every supported runner.
+      await Bun.sleep(500);
+    }
+  }
 }
 
 function install(selected: Manager): { command: string; env: Record<string, string | undefined> } {
