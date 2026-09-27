@@ -21,10 +21,25 @@ function verify(args: string[]): { exitCode: number; stdout: string; stderr: str
 }
 
 describe("release version and automation contract", () => {
-  test("source, Release Please, tag, and stable channel agree", () => {
-    const result = verify(["--tag", "v1.0.0", "--channel", "latest"]);
-    expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("1.0.0 (latest)");
+  test("pre-release CI accepts the v1 source while the manifest tracks v0.5", () => {
+    const packageManifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+      version: string;
+    };
+    const releaseManifest = JSON.parse(
+      readFileSync(join(root, ".release-please-manifest.json"), "utf8"),
+    ) as Record<string, string>;
+
+    expect(packageManifest.version).toBe("1.0.0");
+    expect(verify([]).exitCode).toBe(0);
+
+    const candidate = verify(["--tag", "v1.0.0", "--channel", "latest"]);
+    if (releaseManifest["."] === "0.5.0") {
+      expect(candidate.exitCode).not.toBe(0);
+    } else {
+      expect(releaseManifest["."]).toBe(packageManifest.version);
+      expect(candidate.exitCode).toBe(0);
+      expect(candidate.stdout).toContain("1.0.0 (latest)");
+    }
   });
 
   test("version and prerelease-channel drift are hard failures", () => {

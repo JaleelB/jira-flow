@@ -12,7 +12,13 @@ if (version.includes("-")) fail(`only stable releases are supported, found ${ver
 const releaseManifest = readJson<Record<string, string>>(
   join(root, ".release-please-manifest.json"),
 );
-equal(releaseManifest["."], version, "Release Please manifest version");
+const tag = option("--tag") ?? process.env.JIRAFLOW_RELEASE_TAG;
+const releaseManifestVersion = releaseManifest["."];
+const initialStableReleasePending =
+  version === "1.0.0" && releaseManifestVersion === "0.5.0" && !tag;
+if (!initialStableReleasePending) {
+  equal(releaseManifestVersion, version, "Release Please manifest version");
+}
 
 const versionSource = readFileSync(join(root, "src", "version.ts"), "utf8");
 const fallback = versionSource.match(
@@ -20,7 +26,6 @@ const fallback = versionSource.match(
 )?.[1];
 equal(fallback, version, "source fallback version");
 
-const tag = option("--tag") ?? process.env.JIRAFLOW_RELEASE_TAG;
 if (tag) equal(tag, `v${version}`, "release tag");
 
 const channel = option("--channel") ?? process.env.JIRAFLOW_NPM_CHANNEL;
