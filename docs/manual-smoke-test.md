@@ -9,10 +9,11 @@ test does not touch your real repositories or global Git configuration.
 In GitHub, open **Actions → Stable v1 candidate**, choose the successful run for
 the `main` commit being considered for release, and download its
 `jira-flow-candidate-1.0.0-<commit-sha>` artifact. Record that run ID and full
-commit SHA below. The downloaded artifact is a ZIP containing all six native
-packages, all six runtime-free archives, and `SHA256SUMS`. Extract that ZIP
-first; the platform-specific commands below verify the archive checksums and
-run the matching native binary. Do not substitute a locally rebuilt binary.
+commit SHA below. The downloaded artifact is a ZIP containing the six native
+packages under `packages/` and the six runtime-free archives plus
+`SHA256SUMS` under `release/`. Extract that ZIP first; the platform-specific
+commands below verify the archive checksums and run the matching native binary.
+Do not substitute a locally rebuilt binary.
 
 Record the tested commit before starting:
 
@@ -68,6 +69,7 @@ Git, which JiraFlow uses as the repository authority.
 export CANDIDATE_ARTIFACT_ZIP="/path/to/jira-flow-candidate-1.0.0-COMMIT.zip"
 export SMOKE_ROOT="$(mktemp -d)"
 export CANDIDATE_DIR="$SMOKE_ROOT/candidate-artifact"
+export RELEASE_DIR="$CANDIDATE_DIR/release"
 export BIN_ROOT="$SMOKE_ROOT/bin"
 export SMOKE_REPO="$SMOKE_ROOT/repository with spaces"
 export SMOKE_DATA="$SMOKE_ROOT/jiraflow data"
@@ -77,9 +79,9 @@ mkdir -p "$CANDIDATE_DIR" "$BIN_ROOT" "$SMOKE_REPO" "$SMOKE_DATA"
 unzip -q "$CANDIDATE_ARTIFACT_ZIP" -d "$CANDIDATE_DIR"
 
 if command -v sha256sum >/dev/null 2>&1; then
-  (cd "$CANDIDATE_DIR" && sha256sum --check SHA256SUMS)
+  (cd "$RELEASE_DIR" && sha256sum --check SHA256SUMS)
 else
-  (cd "$CANDIDATE_DIR" && shasum -a 256 --check SHA256SUMS)
+  (cd "$RELEASE_DIR" && shasum -a 256 --check SHA256SUMS)
 fi
 
 case "$(uname -s):$(uname -m)" in
@@ -90,7 +92,7 @@ case "$(uname -s):$(uname -m)" in
   *) echo "Unsupported candidate platform: $(uname -s) $(uname -m)"; exit 1 ;;
 esac
 
-ARCHIVE="$CANDIDATE_DIR/jira-flow-v1.0.0-$TARGET.tar.gz"
+ARCHIVE="$RELEASE_DIR/jira-flow-v1.0.0-$TARGET.tar.gz"
 tar -xzf "$ARCHIVE" -C "$BIN_ROOT"
 export JF_BIN="$BIN_ROOT/jira-flow-v1.0.0-$TARGET/jira-flow"
 test -x "$JF_BIN"
@@ -307,6 +309,7 @@ hooks have a compatible shell.
 $CandidateArtifactZip = "C:\path\to\jira-flow-candidate-1.0.0-COMMIT.zip"
 $SmokeRoot = Join-Path ([IO.Path]::GetTempPath()) ("jiraflow-smoke-" + [guid]::NewGuid())
 $CandidateDir = Join-Path $SmokeRoot "candidate-artifact"
+$ReleaseDir = Join-Path $CandidateDir "release"
 $BinRoot = Join-Path $SmokeRoot "bin"
 $SmokeRepo = Join-Path $SmokeRoot "repository with spaces"
 $SmokeData = Join-Path $SmokeRoot "jiraflow data"
@@ -315,11 +318,11 @@ $SmokeGitConfig = Join-Path $SmokeRoot "isolated gitconfig"
 New-Item -ItemType Directory -Force -Path $CandidateDir, $BinRoot, $SmokeRepo, $SmokeData | Out-Null
 Expand-Archive -LiteralPath $CandidateArtifactZip -DestinationPath $CandidateDir
 
-foreach ($Line in Get-Content (Join-Path $CandidateDir "SHA256SUMS")) {
+foreach ($Line in Get-Content (Join-Path $ReleaseDir "SHA256SUMS")) {
   if ($Line -notmatch '^([0-9a-fA-F]{64})\s+(.+)$') { throw "Invalid SHA256SUMS entry: $Line" }
   $ExpectedHash = $Matches[1].ToLowerInvariant()
   $AssetName = $Matches[2].Trim()
-  $AssetPath = Join-Path $CandidateDir $AssetName
+  $AssetPath = Join-Path $ReleaseDir $AssetName
   $ActualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $AssetPath).Hash.ToLowerInvariant()
   if ($ActualHash -ne $ExpectedHash) { throw "Checksum mismatch: $AssetName" }
 }
@@ -333,7 +336,7 @@ if ($Architecture -eq "X64") {
 } else {
   throw "Unsupported Windows architecture: $Architecture"
 }
-$Archive = Join-Path $CandidateDir "jira-flow-v1.0.0-$Target.zip"
+$Archive = Join-Path $ReleaseDir "jira-flow-v1.0.0-$Target.zip"
 Expand-Archive -LiteralPath $Archive -DestinationPath $BinRoot
 $JfBin = Join-Path $BinRoot "jira-flow-v1.0.0-$Target\jira-flow.exe"
 if (-not (Test-Path -LiteralPath $JfBin)) { throw "Candidate executable missing: $JfBin" }
