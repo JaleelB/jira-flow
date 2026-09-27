@@ -1,4 +1,12 @@
-import { chmodSync, copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  copyFileSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { NATIVE_PLATFORMS, selectedNativeTargets } from "./native-platforms";
@@ -21,6 +29,13 @@ const packageRoot = join(projectRoot, "dist", "packages");
 const stagingRoot = join(packageRoot, "staging");
 mkdirSync(packageRoot, { recursive: true });
 mkdirSync(stagingRoot, { recursive: true });
+
+// This directory is wholly owned by the packaging script. Remove old tarballs
+// so rebuilding after a version change cannot mix stale packages into release
+// verification or candidate artifacts.
+for (const file of readdirSync(packageRoot)) {
+  if (file.endsWith(".tgz")) rmSync(join(packageRoot, file), { force: true });
+}
 
 const nativeTarballs = new Map<string, string>();
 for (const key of targets) {

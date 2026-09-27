@@ -1,6 +1,6 @@
 {
   "name": "jira-flow",
-  "version": "1.0.0-alpha.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "Link Git commits and pull requests with Jira issues, locally.",
   "author": "Jaleel Bennett <jaleelcodes@gmail.com>",

@@ -1,5 +1,13 @@
 import { createHash } from "node:crypto";
-import { chmodSync, copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  copyFileSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, join } from "node:path";
 import { NATIVE_PLATFORMS, selectedNativeTargets } from "./native-platforms";
 
@@ -11,6 +19,13 @@ const releaseRoot = join(projectRoot, "dist", "release");
 const stagingRoot = join(releaseRoot, "staging");
 mkdirSync(releaseRoot, { recursive: true });
 mkdirSync(stagingRoot, { recursive: true });
+
+// Replace only JiraFlow release archives/checksums generated in this directory.
+for (const file of readdirSync(releaseRoot)) {
+  if (file === "SHA256SUMS" || /^jira-flow-v.+\.(?:tar\.gz|zip)$/.test(file)) {
+    rmSync(join(releaseRoot, file), { force: true });
+  }
+}
 
 const archives: string[] = [];
 for (const key of selectedNativeTargets(process.argv.slice(2))) {

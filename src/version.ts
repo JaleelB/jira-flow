@@ -12,7 +12,7 @@ declare const __JIRAFLOW_VERSION__: string;
 declare const __JIRAFLOW_COMMIT__: string;
 declare const __JIRAFLOW_BUILD_DATE__: string;
 
-const DEVELOPMENT_VERSION = "1.0.0-alpha.0"; // x-release-please-version
+const DEVELOPMENT_VERSION = "1.0.0"; // x-release-please-version
 
 export const VERSION: string =
   typeof __JIRAFLOW_VERSION__ === "undefined" ? DEVELOPMENT_VERSION : __JIRAFLOW_VERSION__;

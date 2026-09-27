@@ -6,8 +6,6 @@
     ".": {
       "package-name": "jira-flow",
       "changelog-path": "CHANGELOG.md",
-      "prerelease": true,
-      "prerelease-type": "alpha",
       "extra-files": ["src/version.ts"]
     }
   }

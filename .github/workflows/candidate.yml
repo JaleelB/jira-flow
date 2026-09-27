@@ -1,0 +1,79 @@
+name: Stable v1 candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact stable candidate version
+        required: true
+        type: choice
+        options: [1.0.0]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: candidate-jira-flow-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  native-package-smoke:
+    uses: ./.github/workflows/package-smoke.yml
+
+  candidate:
+    needs: native-package-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out candidate source
+        uses: actions/checkout@v6
+
+      - name: Require main and exact stable version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$VERSION" = "1.0.0"
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile --os=* --cpu=*
+
+      - name: Verify exact stable version
+        run: bun run verify:release -- --tag "v${{ inputs.version }}" --channel latest
+
+      - name: Run full candidate quality gate
+        run: |
+          bun run typecheck
+          bun run lint
+          bun test
+
+      - name: Build six native packages and release archives
+        run: |
+          export SOURCE_DATE_EPOCH=$(git show -s --format=%ct HEAD)
+          bun run build:native -- --all
+          bun run package:native -- --all
+          bun run package:release -- --all
+          bun run verify:release -- --tag "v${{ inputs.version }}" --channel latest --artifacts
+
+      - name: Upload immutable candidate artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: jira-flow-candidate-${{ inputs.version }}-${{ github.sha }}
+          path: |
+            dist/packages/*.tgz
+            dist/release/*.tar.gz
+            dist/release/*.zip
+            dist/release/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30

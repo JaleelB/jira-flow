@@ -7,6 +7,7 @@ const root = join(import.meta.dir, "..");
 const args = process.argv.slice(2);
 const manifest = readJson<{ name: string; version: string }>(join(root, "package.json"));
 const version = manifest.version;
+if (version.includes("-")) fail(`only stable releases are supported, found ${version}`);
 
 const releaseManifest = readJson<Record<string, string>>(
   join(root, ".release-please-manifest.json"),
@@ -24,13 +25,7 @@ if (tag) equal(tag, `v${version}`, "release tag");
 
 const channel = option("--channel") ?? process.env.JIRAFLOW_NPM_CHANNEL;
 if (channel) {
-  if (channel !== "next" && channel !== "latest") fail(`unsupported npm channel ${channel}`);
-  if (version.includes("-") && channel !== "next") {
-    fail(`prerelease ${version} must publish to next, not ${channel}`);
-  }
-  if (!version.includes("-") && channel !== "latest") {
-    fail(`stable ${version} must publish to latest, not ${channel}`);
-  }
+  if (channel !== "latest") fail(`only the npm latest channel is supported, found ${channel}`);
 }
 
 if (args.includes("--artifacts")) verifyArtifacts();
