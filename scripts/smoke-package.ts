@@ -107,7 +107,10 @@ try {
     `${manager} package smoke passed: install, upgrade, hook, doctor, uninstall\n`,
   );
 } finally {
-  rmSync(root, { recursive: true, force: true });
+  // Windows runners can briefly hold extracted package files after child
+  // processes exit. Retry transient filesystem locks, but still fail if the
+  // isolated smoke directory cannot be removed.
+  rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
 }
 
 function install(selected: Manager): { command: string; env: Record<string, string | undefined> } {
