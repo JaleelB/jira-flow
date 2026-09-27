@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted for VS-0/VS-1; version placeholder superseded by ADR-0010 for stable v1.
 
 ## Context
 
@@ -18,7 +18,8 @@ On `rewrite/v1` during VS-0/VS-1:
 - no npm `bin` contract until SPIKE-01 / E12
 - `--version` reports compile-time injected version (placeholder `1.0.0-alpha.0` is fine)
 
-Do not publish. Do not move npm `latest`.
+Do not publish during development. Do not move npm `latest` until the
+explicitly authorized stable v1.0.0 publication.
 
 ## Alternatives Considered
 
@@ -45,8 +46,10 @@ None
 
 ## Superseded By
 
-None
+ADR-0010 supersedes the alpha placeholder for the direct stable v1 release.
 
 ## Notes
 
-Compatible with ADR-0008's later prerelease channel.
+This decision describes the early development safeguard. ADR-0010 later
+chooses stable `1.0.0` as the first public v1 version and prohibits public
+prereleases.

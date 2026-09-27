@@ -545,23 +545,28 @@ may also report the exact DR-0026 nonfunctional `jira-flow.exe` residue after
 proving that the packages were removed; npm or pnpm is required for a supported
 clean Windows package lifecycle.
 
-## Published RC check
+## Stable v1.0.0 post-publish check
 
-After an authorized prerelease is published, repeat the manual product test
-against the registry command instead of `dist/jira-flow`:
+Before publication, run the product smoke against the exact candidate archives
+and package tarballs downloaded from the successful `candidate.yml` run. Do not
+publish an alpha, beta, or RC to perform this check.
+
+After the protected stable workflow publishes v1.0.0, repeat the manual product
+test against the registry command instead of local candidate files:
 
 ```bash
-npm install -g jira-flow@next
+npm install -g jira-flow@1.0.0
 jira-flow --version
 jira-flow --help
 ```
 
 On PowerShell, the commands are the same. Repeat separately with pnpm and Bun
-plus Node. Confirm the installed version is the exact RC version being
-evaluated, then perform upgrade and uninstall with the same package manager.
+plus Node. Confirm the installed version is exactly `1.0.0`, then perform
+upgrade and uninstall with the same package manager.
 
-Do not publish, tag, or promote `latest` merely because this checklist passes.
-Record the result and complete the protected release checklist first.
+Record candidate and post-publish results separately. Candidate checks do not
+authorize a publish; the protected release checklist and explicit workflow
+dispatch remain required.
 
 ## Result record
 

@@ -284,17 +284,14 @@ archives are runtime-free (DR-0023).
 
 ## 5.3 Supported platforms for v1.0
 
-Required:
+Supported and release-blocking validated targets:
 
 - macOS arm64
 - macOS x64
-- Windows x64
-- Linux x64
-
-Strongly preferred if the build pipeline is straightforward:
-
 - Windows arm64
+- Windows x64
 - Linux arm64
+- Linux x64
 
 Other package managers and install channels are deferred unless they are effectively free to support.
 

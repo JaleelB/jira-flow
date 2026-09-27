@@ -30,9 +30,8 @@ jira-flow --help
 ```
 
 Supported release targets are macOS arm64/x64, Linux arm64/x64, and Windows
-arm64/x64. The release-blocking native smoke matrix covers macOS arm64/x64,
-Linux x64, and Windows x64; additional ARM artifacts remain subject to their
-remote native-run gate.
+arm64/x64. All six targets are release-blocking: real-Git integration and
+package-manager smoke run on native CI runners for each architecture.
 
 ## Runtime-free native archives
 
@@ -62,9 +61,11 @@ pnpm add -g jira-flow@latest
 bun add -g jira-flow@latest
 ```
 
-Prereleases use `@next`. Hooks prefer their captured native executable and fall
-back to `jira-flow` on `PATH`, so a moved upgrade remains recoverable. Running
-`jira-flow doctor --repair` refreshes JiraFlow-owned integration if needed.
+JiraFlow v1 is published directly as stable `1.0.0` on npm's `latest` channel;
+there are no public alpha, beta, or RC packages. Hooks prefer their captured
+native executable and fall back to `jira-flow` on `PATH`, so a moved upgrade
+remains recoverable. Running `jira-flow doctor --repair` refreshes JiraFlow-owned
+integration if needed.
 
 ## Uninstall
 

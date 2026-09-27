@@ -7,7 +7,7 @@
 - `JiraFlow_v1_Technical_Implementation_Architecture.md`
 
 **Implementation direction:** TypeScript + Bun + OpenTUI React  
-**Release strategy:** vertical slice → alpha → beta → RC → stable v1  
+**Release strategy:** vertical slice → private M4/M5/M6 readiness gates → stable v1.0.0
 **Primary principle:** implementation follows the product spec and architecture; roadmap tasks do not reopen already-locked decisions unless a technical spike exposes a contradiction.
 
 ---
@@ -1689,21 +1689,19 @@ Write `ADR-009`.
 
 ## E12-3 — Build native release matrix
 
-Required:
+Required and release-blocking:
 
 ```text
 darwin-arm64
 darwin-x64
+linux-arm64
 linux-x64
+windows-arm64
 windows-x64
 ```
 
-Optional once proven:
-
-```text
-linux-arm64
-windows-arm64
-```
+The six targets above must each pass native integration/package smoke before
+v1.0.0 is published.
 
 ## E12-4 — Version injection
 
@@ -1801,9 +1799,11 @@ Remove:
 
 Set up OIDC.
 
-## E13-6 — `next` prerelease workflow
+## E13-6 — Stable candidate workflow
 
-Support alpha/beta/RC.
+Build exact-version packages and archives without publishing, tagging, or
+creating a GitHub Release. Upload immutable candidate artifacts for maintainer
+smoke; the protected stable workflow consumes those same artifacts.
 
 ## E13-7 — Stable release workflow
 
@@ -1982,19 +1982,10 @@ If any fail because of architecture, update architecture before scaling feature 
 
 ---
 
-# 27. Alpha Scope
+# 27. M4 Alpha-Readiness Gate (Private)
 
-Suggested first external release:
-
-```text
-1.0.0-alpha.1
-```
-
-published to:
-
-```text
-next
-```
+M4 is an internal acceptance gate, not a public prerelease. Validate candidate
+artifacts privately and do not publish a version or create a tag.
 
 ## Alpha required features
 
@@ -2045,13 +2036,10 @@ Any of:
 
 ---
 
-# 28. Beta Scope
+# 28. M5 Beta-Readiness Gate (Private)
 
-Suggested:
-
-```text
-1.0.0-beta.1
-```
+M5 confirms feature completeness before stable release preparation; it does not
+create a public beta channel.
 
 Beta means feature complete.
 
@@ -2092,13 +2080,7 @@ Everything in product-spec v1.0 scope:
 
 ---
 
-# 29. Release Candidate Scope
-
-Suggested:
-
-```text
-1.0.0-rc.1
-```
+# 29. M6 Release-Readiness Gate (Private)
 
 RC means no new v1 features.
 
@@ -2127,10 +2109,9 @@ Only:
 
 ### Cross-platform
 
-- macOS arm64
-- macOS x64
-- Windows x64
-- Linux x64
+- macOS arm64/x64
+- Windows arm64/x64
+- Linux arm64/x64
 
 all pass packaged smoke tests.
 
@@ -2139,7 +2120,7 @@ all pass packaged smoke tests.
 - DB migrations tested
 - worktree state versioned
 - hook metadata versioned
-- prerelease upgrade path tested
+- candidate-to-candidate database migration path tested
 
 ### Migration
 
@@ -2180,8 +2161,9 @@ latest -> 1.0.0
 
 Stable only if:
 
-- RC has had external validation
+- private M4/M5/M6 gates and maintainer manual smoke pass
 - no new destructive hook issues
+- all six native targets pass real-Git and package-manager smoke tests
 - release artifacts reproducibly build
 - npm publish uses trusted publishing
 - binary reports exact `1.0.0`
@@ -2239,7 +2221,7 @@ If one implementation agent is executing serially, use:
 14. E12 complete
 15. E13 complete
 16. E14 complete
-17. alpha/beta/RC stabilization as gates require
+17. private M4/M5/M6 readiness gates, then stable v1.0.0
 ```
 
 Packaging SPIKE-01 should run in parallel as early as practical.

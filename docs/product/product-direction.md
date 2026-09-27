@@ -103,22 +103,14 @@ npm intentionally treats previously published package versions as immutable. Eve
 
 - Keep 0.5.0 and older versions available as historical releases.
 - Develop the rewrite without moving the npm `latest` tag until it is ready.
-- Publish prereleases such as `1.0.0-beta.1` or `1.0.0-rc.1` under a non-latest tag such as `next`.
-- During that period, `npm install -g jira-flow` continues to install the stable legacy release, while testers can explicitly install `jira-flow@next`.
+- The original prerelease recommendation below is superseded by accepted
+  ADR-0010: validate privately and make stable `1.0.0` the first public v1
+  release.
 - When v1 is ready, publish `1.0.0` normally. npm will assign the default `latest` dist-tag unless a different tag is specified.
 - Optionally deprecate the legacy version range after v1 is stable, with a message directing users to upgrade. Do not deprecate the entire package, because the package itself continues to be maintained.
 
-```text
-# Example release progression
-npm publish --tag next       # 1.0.0-beta.x / rc.x
-npm install -g jira-flow@next
-
-# Stable cut
-npm publish                  # 1.0.0 -> latest
-
-# Optional legacy warning after v1 is proven
-npm deprecate 'jira-flow@<1.0.0' "Legacy Go implementation. Upgrade to JiraFlow v1."
-```
+There are no public alpha, beta, or RC install commands. npm `latest` remains
+on v0.5.0 until the protected stable workflow publishes v1.0.0.
 
 This is a very clean use of semantic versioning: v1 marks both a stable public contract and a complete implementation rewrite. Users who explicitly require the old version can still install `jira-flow@0.5.0`.
 

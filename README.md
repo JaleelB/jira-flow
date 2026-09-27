@@ -25,8 +25,9 @@ npm and pnpm already run on Node; the universal package launcher requires Node
 users should use npm, pnpm, or the runtime-free native archive because Bun
 1.3.14 and 1.4.0 leave a nonfunctional command shim after uninstall (DR-0026).
 Bun-only environments should also use the native archive. The JiraFlow
-application itself is a standalone binary and does not require Bun or Node. See
-[Installation](docs/installation.md).
+application itself is a standalone binary and does not require Bun or Node.
+Stable v1.0.0 supports macOS arm64/x64, Linux arm64/x64, and Windows arm64/x64.
+See [Installation](docs/installation.md).
 
 ## Quick start
 

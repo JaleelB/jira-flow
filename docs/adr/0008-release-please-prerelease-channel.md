@@ -4,7 +4,7 @@
 
 ## Status
 
-Accepted
+Accepted; prerelease-channel portions superseded by ADR-0010.
 
 ## Context
 
@@ -62,7 +62,9 @@ None
 
 ## Superseded By
 
-None
+ADR-0010 supersedes only the alpha/beta/RC publication sequence and `next`
+dist-tag policy. Release Please remains the version/changelog authority, and
+`jira-flow@latest` remains on v0.5 until the authorized v1.0.0 stable publish.
 
 ## Notes
 

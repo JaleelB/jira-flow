@@ -2327,20 +2327,15 @@ It does not read `package.json` at runtime.
 
 # 49. Native Build Targets
 
-v1 required artifacts:
+v1 required artifacts (all six targets, subject to native release-gate validation):
 
 ```text
 darwin-arm64
 darwin-x64
-linux-x64
-windows-x64
-```
-
-Desired if validated:
-
-```text
 linux-arm64
-windows-arm64
+linux-x64
+win32-arm64
+win32-x64
 ```
 
 Because OpenTUI includes native renderer components, the release pipeline must validate packaged executables on their target OS.
@@ -2360,8 +2355,10 @@ Suggested GitHub release names:
 ```text
 jira-flow-v1.0.0-darwin-arm64.tar.gz
 jira-flow-v1.0.0-darwin-x64.tar.gz
+jira-flow-v1.0.0-linux-arm64.tar.gz
 jira-flow-v1.0.0-linux-x64.tar.gz
-jira-flow-v1.0.0-windows-x64.zip
+jira-flow-v1.0.0-win32-arm64.zip
+jira-flow-v1.0.0-win32-x64.zip
 SHA256SUMS
 ```
 
@@ -2540,55 +2537,48 @@ No local GPG release requirement.
 Conceptual stable release:
 
 ```text
-Conventional commits on main
+Merge JiraFlow v1 to main
         ↓
-Release Please maintains release PR
+Manually ask Release Please for the exact 1.0.0 version PR
         ↓
-merge release PR
+Review and merge the version PR
         ↓
-vX.Y.Z tag + GitHub release
+Build exact-version candidate artifacts with six-target smoke gates
         ↓
-release build matrix
+Inspect the candidate artifacts and record their run ID
         ↓
-standalone binaries
+Protected manual stable workflow validates that exact candidate
         ↓
-target smoke tests
+Create draft GitHub release and attach six archives/checksums
         ↓
-checksums
+Publish six native npm packages, then universal jira-flow package
         ↓
-upload GitHub release assets
-        ↓
-build/verify npm package
-        ↓
-publish npm
+Make GitHub v1.0.0 release public
 ```
 
-npm publishing happens only after binary artifacts pass validation.
+npm publishing happens only after binary artifacts pass validation. Release
+Please creates the reviewed version PR only; it does not publish npm or create
+the stable GitHub tag/release. The protected stable workflow is responsible for
+the final tag and GitHub release after the exact candidate passes.
 
 Use npm trusted publishing/OIDC from GitHub Actions rather than a long-lived publish token when configured.
 
 ---
 
-# 55. Prerelease Channel
+# 55. Direct Stable Release
 
-During v1 development:
+The first public JiraFlow v1 release is stable `1.0.0`. npm `latest` stays on
+legacy `0.5.0` until the protected publish succeeds. There are no public
+alpha, beta, or release-candidate packages or GitHub prereleases.
 
-```text
-jira-flow@latest -> 0.5.0
-jira-flow@next   -> 1.0.0-alpha/beta/rc
-```
-
-Suggested progression:
-
-```text
-1.0.0-alpha.1
-1.0.0-alpha.2
-1.0.0-beta.1
-1.0.0-rc.1
-1.0.0
-```
-
-`latest` does not move to v1 until stable `1.0.0`.
+M4, M5, and M6 remain private acceptance gates. Candidate packages and archives
+are built without publishing or creating a tag, then the exact inspected
+artifacts are consumed by the manually dispatched protected stable workflow.
+Release Please prepares the exact `1.0.0` version PR but does not create a tag
+or GitHub release. The protected workflow creates the draft tag/release only
+after explicit maintainer dispatch, publishes six native npm packages before
+the universal package, and makes the GitHub release public only after npm
+succeeds.
 
 ---
 
@@ -2705,21 +2695,12 @@ The TUI should not be used to hide incomplete engine behavior.
 
 ---
 
-## Phase M4 — alpha releases
+## Phase M4 — alpha-readiness gate (private)
 
-Publish:
+Build and exercise unpublished stable-version candidate artifacts. Do not
+publish a prerelease or create a tag. The gate requires:
 
-```text
-1.0.0-alpha.N
-```
-
-to:
-
-```text
-next
-```
-
-Alpha criteria:
+Alpha-readiness criteria:
 
 - core engine works
 - actual Git commits work
@@ -2730,7 +2711,7 @@ Alpha criteria:
 
 ---
 
-## Phase M5 — beta
+## Phase M5 — beta-readiness gate (private)
 
 Beta criteria:
 
@@ -2741,18 +2722,12 @@ Beta criteria:
 - Windows/macOS/Linux integration suite passes
 - no known destructive hook-management defects
 
-At this point the rewrite can replace `main` if it has not already.
-
-The repository README should clearly say:
-
-```text
-v1 beta / next channel
-stable npm latest remains 0.5.0 until v1.0
-```
+This gate confirms feature completeness before the stable release PR and
+candidate run. It does not create a public beta channel.
 
 ---
 
-## Phase M6 — release candidate
+## Phase M6 — release-readiness gate (private)
 
 RC criteria:
 
@@ -2760,7 +2735,7 @@ RC criteria:
 - documentation complete
 - package manager install/uninstall matrix passes
 - binary smoke tests pass
-- upgrade from prior v1 prerelease DB schemas works
+- database migrations and candidate-to-candidate upgrades work
 - removal leaves foreign Git hooks intact
 - missing JiraFlow binary never blocks Git
 - no P0/P1 known defects
@@ -3071,7 +3046,7 @@ These are implementation rules, not suggestions.
 - package-manager smoke tests
 - Release Please
 - npm trusted publishing
-- `next` prereleases
+- unpublished stable candidate artifacts; no public prereleases
 
 ## Milestone 9 — v1 hardening
 
@@ -3149,7 +3124,7 @@ Unless an implementation spike proves one impossible or unsafe:
 18. SQLite is accessed directly through a thin adapter, with migrations.
 19. standalone executables are canonical release artifacts.
 20. Release Please replaces the old interactive versioning flow.
-21. prereleases use the npm `next` channel.
+21. public v1 publication starts at stable `1.0.0`; M4/M5/M6 are private readiness gates.
 22. stable v1 moves npm `latest` from 0.5 to 1.0.
 23. historical 0.x releases remain available.
 24. the existing GitHub repository remains canonical.
@@ -3242,6 +3217,6 @@ That roadmap should convert these milestones into:
 - acceptance criteria
 - test obligations
 - architecture decision records
-- alpha/beta/RC release gates
+- private M4/M5/M6 acceptance gates and stable release gates
 
 The implementation roadmap should not re-litigate the product spec or this architecture unless a spike exposes a genuine technical contradiction.
