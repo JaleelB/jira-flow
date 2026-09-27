@@ -329,12 +329,19 @@ async function smokeTui(installation: {
     stdout: "pipe",
     stderr: "pipe",
   });
+  const output = Promise.all([
+    new Response(child.stdout).text(),
+    new Response(child.stderr).text(),
+  ]);
   const result = await Promise.race([
     child.exited.then((exitCode) => ({ kind: "exit" as const, exitCode })),
     Bun.sleep(2_000).then(() => ({ kind: "running" as const, exitCode: 0 })),
   ]);
   if (result.kind === "exit" && result.exitCode !== 0) {
-    throw new Error(`packaged Windows TUI exited during startup (${result.exitCode})`);
+    const [stdout, stderr] = await output;
+    throw new Error(
+      `packaged Windows TUI exited during startup (${result.exitCode})${formatOutput(stdout, stderr)}`,
+    );
   }
   if (result.kind === "running") {
     child.stdin.write("q");
@@ -354,6 +361,15 @@ async function smokeTui(installation: {
       await child.exited;
     }
   }
+  await output;
+}
+
+function formatOutput(stdout: string, stderr: string): string {
+  const excerpts = [
+    stderr.trim() ? `stderr:\n${stderr.trim().slice(-2_000)}` : "",
+    stdout.trim() ? `stdout:\n${stdout.trim().slice(-2_000)}` : "",
+  ].filter(Boolean);
+  return excerpts.length > 0 ? `\n${excerpts.join("\n")}` : "";
 }
 
 function repositoryFingerprint(): string {

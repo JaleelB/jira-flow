@@ -134,7 +134,7 @@ Authoritative design sources remain the
 
 ## Development
 
-Requirements: Bun 1.3.14 and Git 2.39+.
+Requirements: Bun 1.4.2 and Git 2.39+.
 
 ```bash
 bun ci

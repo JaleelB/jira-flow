@@ -85,6 +85,30 @@ describe("release version and automation contract", () => {
     }
   });
 
+  test("Windows ARM64 builds use an OpenTUI FFI-capable Bun toolchain", () => {
+    const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+      packageManager: string;
+    };
+    expect(packageJson.packageManager).toBe("bun@1.4.2");
+
+    for (const workflow of [
+      "ci.yml",
+      "integration.yml",
+      "package-smoke.yml",
+      "candidate.yml",
+      "publish.yml",
+    ]) {
+      const contents = readFileSync(join(root, ".github", "workflows", workflow), "utf8");
+      expect(contents).toContain("bun-version: 1.4.2");
+    }
+
+    const packageSmoke = readFileSync(
+      join(root, ".github", "workflows", "package-smoke.yml"),
+      "utf8",
+    );
+    expect(packageSmoke).toContain("bun-version: 1.4.0");
+  });
+
   test("release notes list the six archives and legacy release boundary", () => {
     const notes = readFileSync(join(root, "docs", "releases", "v1.0.0.md"), "utf8");
     for (const platform of [

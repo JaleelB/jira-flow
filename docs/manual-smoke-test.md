@@ -62,7 +62,7 @@ git pull --ff-only origin rewrite/v1
 git rev-parse --short HEAD
 ```
 
-The source-build test requires Git 2.39+ and Bun 1.3.14. The optional package
+The source-build test requires Git 2.39+ and Bun 1.4.2. The optional package
 test also requires Node 18+, npm, pnpm, and Python 3 on Linux/macOS for the PTY
 TUI check. Bun global installation uses the Node-compatible universal launcher;
 a Bun-only machine must test the native archive instead.
